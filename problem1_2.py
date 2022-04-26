@@ -38,7 +38,7 @@ Initial constant variable (from paper):
 """
 R = 20
 q = 4
-Tx = 0.3
+Tx = 2
 Rx = 1
 rlpb = 0.3  # probability of being relay nodes
 N = 200
@@ -435,6 +435,7 @@ Output: best individual for each task
 
 def mfea(tasks, rmp=0.3, generation=100):
     # Initial population with N individuals for each task
+    history = np.empty((0, len(tasks)), float)
     K = len(tasks)
     size = N*K  # size of population
     maximumNumberOfEdges = 0
@@ -457,12 +458,12 @@ def mfea(tasks, rmp=0.3, generation=100):
     individualBestCost = np.array([populationFactorialCost[idx, skillFactor[idx]] for idx in range(size)])
 
     # Loops
-    for _ in range(generation):
+    for i in range(generation):
         offspringPopulation = np.empty((0, population.shape[1]), float)
         offspringSkillFactor = np.empty((0, 1), float)
         # potentialPopulation = np.empty((0,population.shape[1]), float)
         while(len(offspringPopulation) < size):
-            idxP1, idxP2 = tournamentSelectionParents(population, N//10, tasks)
+            idxP1, idxP2 = tournamentSelectionParents(population, 4, tasks)
             rand = np.random.random()
             if(skillFactor[idxP1] == skillFactor[idxP2] or rand < rmp):
                 o1, o2 = crossover(population[idxP1], population[idxP2], uc)
@@ -487,54 +488,23 @@ def mfea(tasks, rmp=0.3, generation=100):
         scalarFitness = 1 / (evaluateRankBaseOnSkillFactor(individualBestCost, skillFactor, len(tasks))+1)
 
         # choose fittest individual by tournament selection
-        newPopulation = np.empty((0, population.shape[1]), float)
+        idxFittestPopulation = list()
         for _ in range(size):
-            idxFittestIndividual = tournamentSelectionIndividual(population.shape[0], N//10, scalarFitness)
-            newPopulation = np.vstack([newPopulation, population[idxFittestIndividual]])
-        population = newPopulation
+            idxFittestIndividual = tournamentSelectionIndividual(population.shape[0], size, scalarFitness)
+            idxFittestPopulation.append(idxFittestIndividual)
+        population = population[idxFittestPopulation]
+        skillFactor = skillFactor[idxFittestPopulation]
+        individualBestCost = individualBestCost[idxFittestPopulation]
 
         t += 1
-        print(t)
+
+        history = np.append(history, [[np.min(individualBestCost[np.where(skillFactor == idx)[0]]) for idx in range (len(tasks))]], axis = 0)
+        print('Epoch [{}/{}], Best Cost: {}'.format(i + 1, generation, [np.min(individualBestCost[np.where(skillFactor == idx)[0]]) for idx in range (len(tasks))]))
 
     # Result
-    lastFactorialCost = evaluatePopulationFactorialCost(population, tasks)
-    lastFactorialRank = evaluateFactorialRank(lastFactorialCost)
-    resultIdx = list()
-    for i in range(len(tasks)):
-        for j in range(size):
-            if(lastFactorialRank[j][i] == 1):
-                resultIdx.append(j)
-                break
-    return population[resultIdx]
+    sol_idx = [np.argmin(individualBestCost[np.where(skillFactor == idx)]) for idx in range (len(tasks))]
+    return [population[np.where(skillFactor == idx)][sol_idx[idx]] for idx in range(len(tasks))]
 
-
-# Test with hardcode
-# task1 = Task(
-#     7, 0, 11, [0, 0, 3, 0, 4, 3, 2, 0], [],
-#     {
-#         0: [1, 3, 4],
-#         1: [0, 5, 6],
-#         2: [3, 4, 7],
-#         3: [0, 2, 4],
-#         4: [0, 3, 7],
-#         5: [1, 6],
-#         6: [1, 5],
-#         7: [2, 4]
-#     }
-# )
-# task2 = Task(
-#     4, 3, 11, [0, 0, 3, 0, 4, 3, 2, 0], [1, 3, 7],
-#     {
-#         0: [1, 3, 4],
-#         1: [0, 5, 6],
-#         2: [3, 4, 7],
-#         3: [0, 2, 4],
-#         4: [0, 3, 7],
-#         5: [1, 6],
-#         6: [1, 5],
-#         7: [2, 4]
-#     }
-# )
 
 mecatDataPath = os.getcwd()+'/dataset4mecat/mecat'
 
@@ -542,27 +512,17 @@ mecatDataFiles = os.listdir(mecatDataPath)
 
 task1 = getInputFromFile(mecatDataPath+'/'+mecatDataFiles[0])
 
-print("Task 1 from file: ", mecatDataFiles[0])
-
-# mecatRnDataPath = os.getcwd()+'/dataset4mecat/mecat_rn'
-
-# mecatRnDataFiles = os.listdir(mecatRnDataPath)
-
-# task2 = getInputFromFile(mecatRnDataPath+'/'+mecatRnDataFiles[0])
-
-# print("Task 2 from file: ", mecatRnDataFiles[0])
-
 task2 = getInputFromFile(mecatDataPath+'_rn/rn_'+mecatDataFiles[0])
 
-print("Task 2 from file: ", mecatDataPath+'_rn/rn_'+mecatDataFiles[0])
-
 tasks = list([task1, task2])
+
+print('Task 1 and 2 is from file: ', mecatDataFiles[0])
 
 resultPopulation = mfea(tasks, 0.3, 10)
 
 for i in range(len(resultPopulation)):
-    result = decode(tasks[i], resultPopulation[i])
-    print("Task", i)
-    print(result)
+    print("Task", i+1)
+    print(tasks[i].evaluateIndividualFactorialCost(resultPopulation[i]))
     print("-----")
     print()
+

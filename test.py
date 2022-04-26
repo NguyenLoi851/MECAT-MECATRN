@@ -37,8 +37,6 @@ mecatRnDataFiles = os.listdir(mecatRnDataPath)
 # myDict = dict()
 # print(type(myDict))
 import numpy as np
-a = np.array([3,4,5])
-print(a)
 
-a = np.concatenate(a, [2,4,7])
-print(a)
+import math
+print(math.ceil(15.6))
