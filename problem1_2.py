@@ -502,32 +502,41 @@ def mfea(tasks, rmp=0.3, generation=100):
         individualBestCost = individualBestCost[idxFittestPopulation]
 
         t += 1
-
-        history = np.append(history, [[np.min(individualBestCost[np.where(skillFactor == idx)[0]]) for idx in range (len(tasks))]], axis = 0)
-        print('Epoch [{}/{}], Best Cost: {}'.format(i + 1, generation, [np.min(individualBestCost[np.where(skillFactor == idx)[0]]) for idx in range (len(tasks))]))
+        nextHistory = np.empty((0, len(tasks)), float)
+        for idx in range(len(tasks)):
+            try:
+                bestCostForTask = np.min(individualBestCost[np.where(skillFactor == idx)[0]])
+            except:
+                populationFactorialCost = evaluatePopulationFactorialCost(population, tasks[idx])
+                bestCostForTask = np.min(populationFactorialCost)
+            nextHistory = np.append(nextHistory, bestCostForTask)
+        
+        history = np.append(history, nextHistory)
+        print('Epoch [{}/{}], Best Cost: {}'.format(i + 1, generation, nextHistory))
 
     # Result
     sol_idx = [np.argmin(individualBestCost[np.where(skillFactor == idx)]) for idx in range (len(tasks))]
-    return [population[np.where(skillFactor == idx)[0]][sol_idx[idx]] for idx in range(len(tasks))]
+    return [population[np.where(skillFactor == idx)[0]][sol_idx[idx]] for idx in range(len(tasks))], history
 
 
 mecatDataPath = os.getcwd()+'/dataset4mecat/mecat'
 
 mecatDataFiles = os.listdir(mecatDataPath)
 
-task1 = getInputFromFile(mecatDataPath+'/'+mecatDataFiles[0])
+number = 4
 
-task2 = getInputFromFile(mecatDataPath+'_rn/rn_'+mecatDataFiles[0])
+task1 = getInputFromFile(mecatDataPath+'/'+mecatDataFiles[number])
+
+task2 = getInputFromFile(mecatDataPath+'_rn/rn_'+mecatDataFiles[number])
 
 tasks = list([task1, task2])
 
-print('Task 1 and 2 is from file: ', mecatDataFiles[0])
+print('Task 1 and 2 is from file: ', mecatDataFiles[number])
 
-resultPopulation = mfea(tasks, 0.3, 10)
+resultPopulation,_ = mfea(tasks, 0.3, 10)
 
 for i in range(len(resultPopulation)):
     print("Task", i+1)
     print(tasks[i].evaluateIndividualFactorialCost(resultPopulation[i]))
     print("-----")
     print()
-
