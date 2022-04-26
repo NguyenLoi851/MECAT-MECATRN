@@ -1,0 +1,12 @@
+- dòng 1: aggregation ratio: q
+- dòng 3: số nodes: N
+- N dòng tiếp: nhãn của nút, hoành độ, tung độ, bán kính truyền thông, năng lượng khởi tạo, kích thước dữ liệu
+ví dụ: 1 20.927864 118.942914 20 121 2
+nhãn node: 1
+hoành độ: 20.927864 
+tung độ: 118.942914
+bán kính truyền thông: 20
+năng lượng khởi tạo: 121
+kích thước dữ liệu cảm nhận được: 2
+*Lưu ý: các nút chuyển tiếp (relay) có kích thước dữ liệu cảm nhận được là 0.
+- các dòng tiếp: 2 nút kết nối với nhau
