@@ -1,42 +1,18 @@
-# read file
-
-import os
-
-print('.')
-
-mecatDataPath = os.getcwd()+'/dataset4mecat/mecat'
-
-mecatDataFiles = os.listdir(mecatDataPath)
-
-# print(mecatDataFiles[0])
-
-# f = open(mecatDataPath+'/'+mecatDataFiles[0], "r")
-# print(f.readline())
-# print(f.readline())
-# print(f.readline())
-# str = f.readline().split()[-1]
-# print(str)
-# for filename in mecatDataFiles:
-#     file = open(mecatDataPath+'/'+filename,"r")
-#     print(filename)
-#     print(file.readline())
-#     print(file.readline())
-#     print()
-
-mecatRnDataPath = os.getcwd()+'/dataset4mecat/mecat_rn'
-
-mecatRnDataFiles = os.listdir(mecatRnDataPath)
-
-# for filename in mecatRnDataFiles:
-#     file = open(mecatRnDataPath+'/'+filename,"r")
-#     print(filename)
-#     print(file.readline())
-#     print(file.readline())
-#     print()
-
-# myDict = dict()
-# print(type(myDict))
 import numpy as np
 
-import math
-print(math.ceil(15.6))
+def tournamentSelectionIndividual(sizeOfPopulation, k, scalarFitness):
+    selected = np.random.randint(low=0, high=sizeOfPopulation, size=k)
+    maxScalarFitness = np.max(scalarFitness[selected])
+    print("gg", maxScalarFitness)
+    print("hh", np.where(scalarFitness == maxScalarFitness)[0])
+    result = np.random.choice(np.where(scalarFitness[selected] == maxScalarFitness)[0])
+    print(selected)
+    print("tt",scalarFitness[selected])
+    return int(result)
+
+print(tournamentSelectionIndividual(10, 5, np.array([3,5,2,1,4,5,2,3,5,1])))
+print(tournamentSelectionIndividual(10, 5, np.array([3,5,2,1,4,5,2,3,5,1])))
+print(tournamentSelectionIndividual(10, 5, np.array([3,5,2,1,4,5,2,3,5,1])))
+print(tournamentSelectionIndividual(10, 5, np.array([3,5,2,1,4,5,2,3,5,1])))
+print(tournamentSelectionIndividual(10, 5, np.array([3,5,2,1,4,5,2,3,5,1])))
+print(tournamentSelectionIndividual(10, 5, np.array([3,5,2,1,4,5,2,3,5,1])))

@@ -76,7 +76,7 @@ Output: adjacent List (dictionary of (int, array))
 
 def decode(task, individual):
     result = {}
-    sortByArgArr = np.argsort(individual)
+    argSort = np.argsort(individual)
     edgesOfTask = list()
     degreeOfVertice = list()
     for key, value in task.adjList.items():
@@ -86,19 +86,23 @@ def decode(task, individual):
 
     parent = np.arange(0, task.n+task.m+1, 1, dtype=int)
     UF = UnionFind(parent)
-    for i in sortByArgArr:
+    count = 0
+    for i in argSort:
         u = edgesOfTask[i][0]
         v = edgesOfTask[i][1]
         if(UF.find(u) != UF.find(v)):
+            count+=1
             UF.unite(u, v)
-            if(edgesOfTask[i][0] not in result):
-                result[edgesOfTask[i][0]] = list([edgesOfTask[i][1]])
+            if(u not in result):
+                result[u] = list([v])
             else:
-                result[edgesOfTask[i][0]].append(edgesOfTask[i][1])
-            if(edgesOfTask[i][1] not in result):
-                result[edgesOfTask[i][1]] = list([edgesOfTask[i][0]])
+                result[u].append(v)
+            if(v not in result):
+                result[v] = list([u])
             else:
-                result[edgesOfTask[i][1]].append(edgesOfTask[i][0])
+                result[v].append(u)
+            if(count == task.n+task.m):
+                break
 
     tmpResult = {k: v for k, v in sorted(list(result.items()))}
     result = tmpResult
@@ -149,7 +153,7 @@ class Task:
                 if(key != 0 and len(pheotype[key]) == 1):
                     z[key] += self.s[key]
                     adjVertice = pheotype[key][0]
-                    z[adjVertice] += self.s[key]
+                    z[adjVertice] += math.ceil(z[key]/q)
                     pheotype.pop(key, None)
                     pheotype[adjVertice].remove(key)
 
@@ -188,7 +192,7 @@ def getInputFromFile(filePath):
         s.append(reportSize)
         if(reportSize == 0 and i!=0):
             m+=1
-            listOfRelayNode .append(i)
+            listOfRelayNode.append(i)
     
     n = numberOfAllNode - m - 1
 
@@ -331,7 +335,8 @@ Output: index of fittest individual
 
 def tournamentSelectionIndividual(sizeOfPopulation, k, scalarFitness):
     selected = np.random.randint(low=0, high=sizeOfPopulation, size=k)
-    result = np.argmax(scalarFitness[selected])
+    maxScalarFitness = np.max(scalarFitness[selected])
+    result = np.random.choice(np.where(scalarFitness[selected] == maxScalarFitness)[0])
     return int(result)
 
 
@@ -455,13 +460,13 @@ def mfea(tasks, rmp=0.3, generation=100):
     populationFactorialCost = evaluatePopulationFactorialCost(population, tasks)
     factorialRank = evaluateFactorialRank(populationFactorialCost)
     skillFactor = evaluateSkillFactor(factorialRank)
-    individualBestCost = np.array([populationFactorialCost[idx, skillFactor[idx]] for idx in range(size)])
+    individualBestCost = np.array([populationFactorialCost[idx][skillFactor[idx]] for idx in range(size)])
 
     # Loops
     for i in range(generation):
-        offspringPopulation = np.empty((0, population.shape[1]), float)
+        offspringPopulation = np.empty((0, maximumNumberOfEdges), float)
         offspringSkillFactor = np.empty((0, 1), float)
-        # potentialPopulation = np.empty((0,population.shape[1]), float)
+        # potentialPopulation = np.empty((0, maximumNumberOfEdges), float)
         while(len(offspringPopulation) < size):
             idxP1, idxP2 = tournamentSelectionParents(population, 4, tasks)
             rand = np.random.random()
@@ -490,7 +495,7 @@ def mfea(tasks, rmp=0.3, generation=100):
         # choose fittest individual by tournament selection
         idxFittestPopulation = list()
         for _ in range(size):
-            idxFittestIndividual = tournamentSelectionIndividual(population.shape[0], size, scalarFitness)
+            idxFittestIndividual = tournamentSelectionIndividual(population.shape[0], population.shape[0], scalarFitness)
             idxFittestPopulation.append(idxFittestIndividual)
         population = population[idxFittestPopulation]
         skillFactor = skillFactor[idxFittestPopulation]
@@ -503,7 +508,7 @@ def mfea(tasks, rmp=0.3, generation=100):
 
     # Result
     sol_idx = [np.argmin(individualBestCost[np.where(skillFactor == idx)]) for idx in range (len(tasks))]
-    return [population[np.where(skillFactor == idx)][sol_idx[idx]] for idx in range(len(tasks))]
+    return [population[np.where(skillFactor == idx)[0]][sol_idx[idx]] for idx in range(len(tasks))]
 
 
 mecatDataPath = os.getcwd()+'/dataset4mecat/mecat'
