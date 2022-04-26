@@ -494,9 +494,11 @@ def mfea(tasks, rmp=0.3, generation=100):
 
         # choose fittest individual by tournament selection
         idxFittestPopulation = list()
-        for _ in range(size):
-            idxFittestIndividual = tournamentSelectionIndividual(population.shape[0], population.shape[0], scalarFitness)
-            idxFittestPopulation.append(idxFittestIndividual)
+        # for _ in range(size):
+        #     idxFittestIndividual = tournamentSelectionIndividual(population.shape[0], population.shape[0], scalarFitness)
+        #     idxFittestPopulation.append(idxFittestIndividual)
+
+        idxFittestPopulation = np.argsort(-scalarFitness)[:size]
         population = population[idxFittestPopulation]
         skillFactor = skillFactor[idxFittestPopulation]
         individualBestCost = individualBestCost[idxFittestPopulation]
@@ -523,20 +525,17 @@ mecatDataPath = os.getcwd()+'/dataset4mecat/mecat'
 
 mecatDataFiles = os.listdir(mecatDataPath)
 
-number = 4
-
-task1 = getInputFromFile(mecatDataPath+'/'+mecatDataFiles[number])
-
-task2 = getInputFromFile(mecatDataPath+'_rn/rn_'+mecatDataFiles[number])
-
-tasks = list([task1, task2])
-
-print('Task 1 and 2 is from file: ', mecatDataFiles[number])
-
-resultPopulation,_ = mfea(tasks, 0.3, 10)
-
-for i in range(len(resultPopulation)):
-    print("Task", i+1)
-    print(tasks[i].evaluateIndividualFactorialCost(resultPopulation[i]))
+for i in range(20):
+    number = i
+    task1 = getInputFromFile(mecatDataPath+'/'+mecatDataFiles[number])
+    task2 = getInputFromFile(mecatDataPath+'_rn/rn_'+mecatDataFiles[number])
+    tasks = list([task1, task2])
+    print('Task 1 and 2 is from file: ', mecatDataFiles[number])
+    resultPopulation,_ = mfea(tasks, 0.3, 10)
+    print("-----")
+    for i in range(len(resultPopulation)):
+        print("Task", i+1)
+        print(tasks[i].evaluateIndividualFactorialCost(resultPopulation[i]))
+        print()
     print("-----")
     print()
