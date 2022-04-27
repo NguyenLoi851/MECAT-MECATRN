@@ -139,10 +139,10 @@ class Task:
         self.adjList = adjList
 
     """
-  Evaluate factorial cost of each individual
-  Param: task (self), individual (in genotype)
-  Output: a number (used energy)
-  """
+    Evaluate factorial cost of each individual
+    Param: task (self), individual (in genotype)
+    Output: a number (used energy)
+    """
 
     def evaluateIndividualFactorialCost(self, individual):
         result = 0
@@ -161,8 +161,8 @@ class Task:
         for i in range(self.n + self.m + 1):
             if(i == 0):
                 continue
-            result += (Tx + Rx)*math.ceil(z[i]/q)
-        return result
+            result += math.ceil(z[i]/q)
+        return (Tx + Rx)*result
 
 
 """
@@ -210,7 +210,8 @@ def getInputFromFile(filePath):
             adjList[edge[1]] = list([edge[0]])
         else:
             adjList[edge[1]].append(edge[0])
-
+    
+    file.close()
     return Task(n,m,numberOfEdges,s,listOfRelayNode,adjList)
 
 """
@@ -431,6 +432,82 @@ def evaluateRankBaseOnSkillFactor(individualBestCost, skillFactor, numOfTasks):
         result[idxs] = np.argsort(np.argsort(individualBestCost[idxs]))
     return result
 
+"""
+Encode from tree to genotype
+Param: tree, adjList, numberOfEdges, numberOfEdgesOfTree
+Output: individual
+"""
+def encode(tree, adjList, numberOfEdges, numberOfEdgesOfTree):
+    randArr = initializeIndividual(numberOfEdges)
+    result = np.array([])
+    randArr = sorted(randArr, reverse=True)
+
+    cnt1 = 0
+    cnt2 = numberOfEdgesOfTree
+
+    for key in adjList:
+        for vertice in adjList[key]:
+            if(vertice > key):
+                if(vertice in tree[key]):
+                    result = np.append(result, randArr[cnt1])
+                    cnt1 += 1
+                else:
+                    result = np.append(result, randArr[cnt2])
+                    cnt2 += 1
+    return result
+
+
+"""
+Create potential population
+Param: tree, adjList, numberOfEdges, maximumNumberOfEdges
+Output: K*NE potential individuals
+"""
+def createPotentialPopulation(tree, adjList, numberOfEdges, maximumNumberOfEdges,numberOfTasks):
+    population = np.empty((0, maximumNumberOfEdges), float)
+    numberOfEdgesOfTree = 0
+    for key in tree:
+        tree[key] = sorted(tree[key])
+        numberOfEdgesOfTree += len(tree[key])
+    for key in adjList:
+        adjList[key] = sorted(adjList[key])
+    for _ in range(numberOfTasks*NE):
+        individual = encode(tree, adjList, numberOfEdges, numberOfEdgesOfTree)
+        population = np.vstack([population, representInCommonSpace(individual, maximumNumberOfEdges)])
+    return population
+"""
+Create shortest path tree
+Param: number of node, s, adjList
+Output: tree
+"""
+def SPT(numberOfNodes, graph):
+    for key in graph:
+        graph[key] = sorted(graph[key])
+    isVisited = [False for i in range(numberOfNodes)]
+    queue = []
+    queue.append(0)
+    isVisited[0] = True
+    count = 1
+    tree = [[]for i in range(numberOfNodes)]
+    while(len(queue) != 0):
+        h = queue[0]
+        queue.pop(0)
+        for i in graph[h]:
+            if isVisited[i] == False:
+                isVisited[i] = True
+                queue.append(i)
+                count += 1
+                tree[h].append(i)
+                tree[i].append(h)
+                if(count == numberOfNodes):
+                    result = {}
+                    for i in range(len(tree)):
+                        result[i] = tree[i]
+                    return result
+    result = {}
+    for i in range(len(tree)):
+        result[i] = tree[i]
+    return result
+
 
 """
 Multi-factorial Evolutionary Algorithm
@@ -464,6 +541,8 @@ def mfea(tasks, rmp=0.3, generation=100):
     scalarFitness = evaluateScalarFitness(factorialRank)
     individualBestCost = np.array([populationFactorialCost[idx][skillFactor[idx]] for idx in range(size)])
 
+    shortestPathTree = SPT(tasks[0].n+tasks[0].m+1, tasks[0].adjList)
+
     # Loops
     for i in range(generation):
         offspringPopulation = np.empty((0, maximumNumberOfEdges), float)
@@ -482,16 +561,26 @@ def mfea(tasks, rmp=0.3, generation=100):
             offspringPopulation = np.vstack([offspringPopulation, o1])
             offspringPopulation = np.vstack([offspringPopulation, o2])
 
+        if(t>deltaT and t%deltaT == 0):
+            potentialPopulation = createPotentialPopulation(shortestPathTree, tasks[0].adjList, tasks[0].numberOfEdges, maximumNumberOfEdges, len(tasks))
+            potentialSkillFactor = np.array([0]*(K*NE))
+            potentialCost = evaluatePopulationFactorialCost(potentialPopulation, list([tasks[0]]))
+
         # Factorial cost of offspring population
         offspringCost = evaluateOffspringCost(offspringPopulation, offspringSkillFactor, tasks)
 
         # Update population
         population = np.vstack([population, offspringPopulation])
-        # population = np.vstack([population, potentialPopulation])
+        if(t>deltaT and t%deltaT == 0):
+            population = np.vstack([population, potentialPopulation])
 
         # Update scalar fitness and skill factor for each individual
         skillFactor = np.append(skillFactor, offspringSkillFactor)
+        if(t>deltaT and t%deltaT == 0):
+            skillFactor = np.append(skillFactor, potentialSkillFactor)
         individualBestCost = np.append(individualBestCost, offspringCost)
+        if(t>deltaT and t%deltaT == 0):
+            individualBestCost = np.append(individualBestCost, potentialCost)
         scalarFitness = 1 / (evaluateRankBaseOnSkillFactor(individualBestCost, skillFactor, len(tasks))+1)
 
         # choose fittest individual by tournament selection
@@ -507,6 +596,7 @@ def mfea(tasks, rmp=0.3, generation=100):
         individualBestCost = individualBestCost[idxFittestPopulation]
 
         t += 1
+
         nextHistory = np.empty((0, len(tasks)), float)
         for idx in range(len(tasks)):
             try:
@@ -535,7 +625,7 @@ for i in range(len(mecatDataFiles)):
     task2 = getInputFromFile(mecatDataPath+'_rn/rn_'+mecatDataFiles[i])
     tasks = list([task1, task2])
     print('Task 1 and 2 is from file: ', mecatDataFiles[i])
-    resultPopulation,history = mfea(tasks, 0.3, 30)
+    resultPopulation,history = mfea(tasks, 0.3, 350)
     print("-----")
     for i in range(len(resultPopulation)):
         print("Task", i+1)
