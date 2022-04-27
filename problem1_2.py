@@ -493,12 +493,12 @@ def mfea(tasks, rmp=0.3, generation=100):
         scalarFitness = 1 / (evaluateRankBaseOnSkillFactor(individualBestCost, skillFactor, len(tasks))+1)
 
         # choose fittest individual by tournament selection
-        idxFittestPopulation = list()
-        for _ in range(size):
-            idxFittestIndividual = tournamentSelectionIndividual(population.shape[0], population.shape[0], scalarFitness)
-            idxFittestPopulation.append(idxFittestIndividual)
+        # idxFittestPopulation = list()
+        # for _ in range(size):
+        #     idxFittestIndividual = tournamentSelectionIndividual(population.shape[0], population.shape[0], scalarFitness)
+        #     idxFittestPopulation.append(idxFittestIndividual)
 
-        # idxFittestPopulation = np.argsort(-scalarFitness)[:size]
+        idxFittestPopulation = np.argsort(-scalarFitness)[:size]
 
         population = population[idxFittestPopulation]
         skillFactor = skillFactor[idxFittestPopulation]
