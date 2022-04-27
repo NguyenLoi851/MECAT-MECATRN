@@ -153,7 +153,7 @@ class Task:
                 if(key != 0 and len(pheotype[key]) == 1):
                     z[key] += self.s[key]
                     adjVertice = pheotype[key][0]
-                    z[adjVertice] += math.ceil(z[key]/q)
+                    z[adjVertice] += z[key]
                     pheotype.pop(key, None)
                     pheotype[adjVertice].remove(key)
 
@@ -525,13 +525,14 @@ mecatDataPath = os.getcwd()+'/dataset4mecat/mecat'
 
 mecatDataFiles = os.listdir(mecatDataPath)
 
-for i in range(20):
-    number = i
-    task1 = getInputFromFile(mecatDataPath+'/'+mecatDataFiles[number])
-    task2 = getInputFromFile(mecatDataPath+'_rn/rn_'+mecatDataFiles[number])
+mecatDataFiles = sorted(mecatDataFiles,reverse=True)
+
+for i in range(len(mecatDataFiles)):
+    task1 = getInputFromFile(mecatDataPath+'/'+mecatDataFiles[i])
+    task2 = getInputFromFile(mecatDataPath+'_rn/rn_'+mecatDataFiles[i])
     tasks = list([task1, task2])
-    print('Task 1 and 2 is from file: ', mecatDataFiles[number])
-    resultPopulation,_ = mfea(tasks, 0.3, 10)
+    print('Task 1 and 2 is from file: ', mecatDataFiles[i])
+    resultPopulation,_ = mfea(tasks, 0.3, 350)
     print("-----")
     for i in range(len(resultPopulation)):
         print("Task", i+1)
