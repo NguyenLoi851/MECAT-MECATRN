@@ -494,11 +494,12 @@ def mfea(tasks, rmp=0.3, generation=100):
 
         # choose fittest individual by tournament selection
         idxFittestPopulation = list()
-        # for _ in range(size):
-        #     idxFittestIndividual = tournamentSelectionIndividual(population.shape[0], population.shape[0], scalarFitness)
-        #     idxFittestPopulation.append(idxFittestIndividual)
+        for _ in range(size):
+            idxFittestIndividual = tournamentSelectionIndividual(population.shape[0], population.shape[0], scalarFitness)
+            idxFittestPopulation.append(idxFittestIndividual)
 
-        idxFittestPopulation = np.argsort(-scalarFitness)[:size]
+        # idxFittestPopulation = np.argsort(-scalarFitness)[:size]
+
         population = population[idxFittestPopulation]
         skillFactor = skillFactor[idxFittestPopulation]
         individualBestCost = individualBestCost[idxFittestPopulation]
@@ -509,7 +510,7 @@ def mfea(tasks, rmp=0.3, generation=100):
             try:
                 bestCostForTask = np.min(individualBestCost[np.where(skillFactor == idx)[0]])
             except:
-                populationFactorialCost = evaluatePopulationFactorialCost(population, tasks[idx])
+                populationFactorialCost = evaluatePopulationFactorialCost(population, list([tasks[idx]]))
                 bestCostForTask = np.min(populationFactorialCost)
             nextHistory = np.append(nextHistory, bestCostForTask)
         
