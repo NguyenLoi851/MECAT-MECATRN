@@ -30,6 +30,7 @@ Original file is located at
 """
 
 import numpy as np
+import matplotlib.pyplot as plt
 import math
 import os
 
@@ -299,12 +300,12 @@ def evaluateSkillFactor(factorialRank):
 
 """
 Tournament selection to select parents
-Param: population, k (number of selection in population), tasks
+Param: population, k (number of selection in population), scalar fitness
 Output: 2 index of best parents
 """
 
 
-def tournamentSelectionParents(population, k, tasks):
+def tournamentSelectionParents(population, k, scalarFitness):
     selected = np.random.randint(low=0, high=population.shape[0], size=k)
     while(True):
         size = selected.shape[0]
@@ -315,10 +316,10 @@ def tournamentSelectionParents(population, k, tasks):
             size += 1
         newSelected = np.array([])
         for i in range(size//2):
-            factorialCost = evaluatePopulationFactorialCost(np.array([population[int(selected[int(i*2)])], population[int(selected[int(i*2+1)])]]), tasks)
-            factorialRank = evaluateFactorialRank(factorialCost)
-            scalarFitness = evaluateScalarFitness(factorialRank)
-            if(scalarFitness[0] > scalarFitness[1]):
+            # factorialCost = evaluatePopulationFactorialCost(np.array([population[int(selected[int(i*2)])], population[int(selected[int(i*2+1)])]]), tasks)
+            # factorialRank = evaluateFactorialRank(factorialCost)
+            # scalarFitness = evaluateScalarFitness(factorialRank)
+            if(scalarFitness[i*2] > scalarFitness[i*2+1]):
                 newSelected = np.append(newSelected, i*2)
             else:
                 newSelected = np.append(newSelected, i*2+1)
@@ -460,6 +461,7 @@ def mfea(tasks, rmp=0.3, generation=100):
     populationFactorialCost = evaluatePopulationFactorialCost(population, tasks)
     factorialRank = evaluateFactorialRank(populationFactorialCost)
     skillFactor = evaluateSkillFactor(factorialRank)
+    scalarFitness = evaluateScalarFitness(factorialRank)
     individualBestCost = np.array([populationFactorialCost[idx][skillFactor[idx]] for idx in range(size)])
 
     # Loops
@@ -468,7 +470,7 @@ def mfea(tasks, rmp=0.3, generation=100):
         offspringSkillFactor = np.empty((0, 1), float)
         # potentialPopulation = np.empty((0, maximumNumberOfEdges), float)
         while(len(offspringPopulation) < size):
-            idxP1, idxP2 = tournamentSelectionParents(population, 4, tasks)
+            idxP1, idxP2 = tournamentSelectionParents(population, 4, scalarFitness)
             rand = np.random.random()
             if(skillFactor[idxP1] == skillFactor[idxP2] or rand < rmp):
                 o1, o2 = crossover(population[idxP1], population[idxP2], uc)
@@ -514,7 +516,7 @@ def mfea(tasks, rmp=0.3, generation=100):
                 bestCostForTask = np.min(populationFactorialCost)
             nextHistory = np.append(nextHistory, bestCostForTask)
         
-        history = np.append(history, nextHistory)
+        history = np.vstack([history, nextHistory])
         print('Epoch [{}/{}], Best Cost: {}'.format(i + 1, generation, nextHistory))
 
     # Result
@@ -533,7 +535,7 @@ for i in range(len(mecatDataFiles)):
     task2 = getInputFromFile(mecatDataPath+'_rn/rn_'+mecatDataFiles[i])
     tasks = list([task1, task2])
     print('Task 1 and 2 is from file: ', mecatDataFiles[i])
-    resultPopulation,_ = mfea(tasks, 0.3, 350)
+    resultPopulation,history = mfea(tasks, 0.3, 30)
     print("-----")
     for i in range(len(resultPopulation)):
         print("Task", i+1)
@@ -541,3 +543,10 @@ for i in range(len(mecatDataFiles)):
         print()
     print("-----")
     print()
+    for i in range (history.shape[1]):
+        plt.plot(np.arange(len(history)), history[:, i], "blue")
+        
+        plt.title(tasks[i].__class__.__name__)
+        plt.xlabel("Epoch")
+        plt.ylabel("Best Factorial Cost")
+        plt.show()
