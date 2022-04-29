@@ -77,7 +77,7 @@ Output: adjacent List (dictionary of (int, array))
 
 def decode(task, individual):
     result = {}
-    argSort = np.argsort(individual)
+    argSort = np.argsort(-individual)
     edgesOfTask = list()
     degreeOfVertice = list()
     for key, value in task.adjList.items():
@@ -198,18 +198,18 @@ def getInputFromFile(filePath):
     n = numberOfAllNode - m - 1
 
     numberOfEdges = int(file.readline())
+    tmpNumberOfEdges = 0
     adjList = dict()
+    for i in range(numberOfAllNode):
+        adjList[i] = list([])
     for i in range(numberOfEdges):
         edge = file.readline().split()
         edge = [int(vertice) for vertice in edge]
-        if(edge[0] not in adjList):
-            adjList[edge[0]] = list([edge[1]])
-        else:
-            adjList[edge[0]].append(edge[1])
-        if(edge[1] not in adjList):
-            adjList[edge[1]] = list([edge[0]])
-        else:
+        if(edge[0] not in adjList[edge[1]]):
             adjList[edge[1]].append(edge[0])
+            adjList[edge[0]].append(edge[1])
+            tmpNumberOfEdges += 1
+    numberOfEdges = tmpNumberOfEdges
     
     file.close()
     return Task(n,m,numberOfEdges,s,listOfRelayNode,adjList)
@@ -338,7 +338,7 @@ Output: index of fittest individual
 def tournamentSelectionIndividual(sizeOfPopulation, k, scalarFitness):
     selected = np.random.randint(low=0, high=sizeOfPopulation, size=k)
     maxScalarFitness = np.max(scalarFitness[selected])
-    result = np.random.choice(np.where(scalarFitness[selected] == maxScalarFitness)[0])
+    result = np.random.choice(np.where(scalarFitness == maxScalarFitness)[0])
     return int(result)
 
 
@@ -439,22 +439,22 @@ Output: individual
 """
 def encode(tree, adjList, numberOfEdges, numberOfEdgesOfTree):
     randArr = initializeIndividual(numberOfEdges)
-    result = np.array([])
+    result = list()
     randArr = sorted(randArr, reverse=True)
 
     cnt1 = 0
     cnt2 = numberOfEdgesOfTree
 
-    for key in adjList:
-        for vertice in adjList[key]:
+    for key, value in adjList.items():
+        for vertice in value:
             if(vertice > key):
                 if(vertice in tree[key]):
-                    result = np.append(result, randArr[cnt1])
+                    result.append(randArr[cnt1])
                     cnt1 += 1
                 else:
-                    result = np.append(result, randArr[cnt2])
+                    result.append(randArr[cnt2])
                     cnt2 += 1
-    return result
+    return np.array(result)
 
 
 """
@@ -468,20 +468,25 @@ def createPotentialPopulation(tree, adjList, numberOfEdges, maximumNumberOfEdges
     for key in tree:
         tree[key] = sorted(tree[key])
         numberOfEdgesOfTree += len(tree[key])
+    numberOfEdgesOfTree //= 2
     for key in adjList:
         adjList[key] = sorted(adjList[key])
     for _ in range(numberOfTasks*NE):
         individual = encode(tree, adjList, numberOfEdges, numberOfEdgesOfTree)
         population = np.vstack([population, representInCommonSpace(individual, maximumNumberOfEdges)])
     return population
+
+
 """
 Create shortest path tree
 Param: number of node, s, adjList
 Output: tree
 """
 def SPT(numberOfNodes, graph):
+    tmpGraph = {}
     for key in graph:
-        graph[key] = sorted(graph[key])
+        vertices = graph[key]
+        tmpGraph[key] = sorted(vertices)
     isVisited = [False for i in range(numberOfNodes)]
     queue = []
     queue.append(0)
@@ -491,7 +496,7 @@ def SPT(numberOfNodes, graph):
     while(len(queue) != 0):
         h = queue[0]
         queue.pop(0)
-        for i in graph[h]:
+        for i in tmpGraph[h]:
             if isVisited[i] == False:
                 isVisited[i] = True
                 queue.append(i)
@@ -542,7 +547,6 @@ def mfea(tasks, rmp=0.3, generation=100):
     individualBestCost = np.array([populationFactorialCost[idx][skillFactor[idx]] for idx in range(size)])
 
     shortestPathTree = SPT(tasks[0].n+tasks[0].m+1, tasks[0].adjList)
-
     # Loops
     for i in range(generation):
         offspringPopulation = np.empty((0, maximumNumberOfEdges), float)
@@ -584,12 +588,12 @@ def mfea(tasks, rmp=0.3, generation=100):
         scalarFitness = 1 / (evaluateRankBaseOnSkillFactor(individualBestCost, skillFactor, len(tasks))+1)
 
         # choose fittest individual by tournament selection
-        # idxFittestPopulation = list()
-        # for _ in range(size):
-        #     idxFittestIndividual = tournamentSelectionIndividual(population.shape[0], population.shape[0], scalarFitness)
-        #     idxFittestPopulation.append(idxFittestIndividual)
+        idxFittestPopulation = list()
+        for _ in range(size):
+            idxFittestIndividual = tournamentSelectionIndividual(population.shape[0], population.shape[0], scalarFitness)
+            idxFittestPopulation.append(idxFittestIndividual)
 
-        idxFittestPopulation = np.argsort(-scalarFitness)[:size]
+        # idxFittestPopulation = np.argsort(-scalarFitness)[:size]
 
         population = population[idxFittestPopulation]
         skillFactor = skillFactor[idxFittestPopulation]
@@ -635,7 +639,6 @@ for i in range(len(mecatDataFiles)):
     print()
     for i in range (history.shape[1]):
         plt.plot(np.arange(len(history)), history[:, i], "blue")
-        
         plt.title(tasks[i].__class__.__name__)
         plt.xlabel("Epoch")
         plt.ylabel("Best Factorial Cost")
