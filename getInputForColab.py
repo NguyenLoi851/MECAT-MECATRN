@@ -9,8 +9,6 @@ mecatDataFiles=['l100_4_20.test','l110_4_20.test','l120_4_20.test','l130_4_20.te
 mecatDataFiles = sorted(mecatDataFiles,reverse=False)
 
 for i in range(len(mecatDataFiles)):
-    # task1 = getInputFromFile(mecatDataPath+'/'+mecatDataFiles[i])
-    # task2 = getInputFromFile(mecatDataPath+'_rn/rn_'+mecatDataFiles[i])
     task1 = getInputFromFile(mecatDataFiles[i])
     task2 = getInputFromFile('rn_'+mecatDataFiles[i])
     tasks = list([task1, task2])
