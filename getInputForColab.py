@@ -13,7 +13,7 @@ for i in range(len(mecatDataFiles)):
     task2 = getInputFromFile('rn_'+mecatDataFiles[i])
     tasks = list([task1, task2])
     print('Task 1 and 2 is from file: ', mecatDataFiles[i])
-    resultPopulation,_ = mfea(tasks, 0.3, 350)
+    resultPopulation,_ = mfea(tasks, 0.3, 1000)
     print("-----")
     for i in range(len(resultPopulation)):
         print("Task", i+1)

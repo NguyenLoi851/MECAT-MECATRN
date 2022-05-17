@@ -49,7 +49,7 @@ NE = 75
 uc = 2
 um = 5
 deltaT = 150
-
+INF = 9999999999
 
 """
 Data structure checks if cycle exists in graph when add edges.
@@ -284,8 +284,8 @@ Tournament selection to select parents
 Param: population, k (number of selection in population), scalar fitness
 Output: 2 index of best parents
 """
-def tournamentSelectionParents(population, k, scalarFitness):
-    selected = np.array(random.sample(range(population.shape[0]),k))
+def tournamentSelectionParents(sizeOfPopulation, k, scalarFitness):
+    selected = np.array(random.sample(range(sizeOfPopulation),k))
     while(True):
         size = selected.shape[0]
         if(size == 2):
@@ -295,7 +295,7 @@ def tournamentSelectionParents(population, k, scalarFitness):
             size += 1
         newSelected = np.array([])
         for i in range(size//2):
-            if(scalarFitness[i*2] > scalarFitness[i*2+1]):
+            if(scalarFitness[int(selected[i*2])] > scalarFitness[int(selected[i*2+1])]):
                 newSelected = np.append(newSelected, i*2)
             else:
                 newSelected = np.append(newSelected, i*2+1)
@@ -311,8 +311,9 @@ Output: index of fittest individual
 def tournamentSelectionIndividual(sizeOfPopulation, k, scalarFitness):
     selected = np.array(random.sample(range(sizeOfPopulation),k))
     maxScalarFitness = np.max(scalarFitness[selected])
-    result = np.random.choice(np.where(scalarFitness == maxScalarFitness)[0])
-    return int(result)
+    # result = np.random.choice(np.where(scalarFitness == maxScalarFitness)[0])
+    idxOfResult = np.argmax(scalarFitness[selected])   
+    return int(selected[idxOfResult])
 
 
 """
@@ -442,6 +443,231 @@ def createPotentialPopulation(tree, adjList, numberOfEdges, maximumNumberOfEdges
 
 
 """
+7 approximation
+"""
+class graph_hat:
+    def __init__(self,graph,report_size,num_node):
+        self.graph = graph
+        self.report_size = report_size 
+        self.num_node = num_node
+        self.all_pair_shortest_path = {}
+        self.graph_hat = [[] for i in range(self.num_node)]
+
+    def BFS(self,source_node):
+        queue = []
+        check = [False for i in range(self.num_node)]
+        check[source_node] = True
+        queue.append((source_node,1))
+        count = 1
+        while (len(queue)!= 0):
+            current_node, height = queue[0]
+            queue.pop(0)
+            for v in self.graph[current_node]:
+                if(check[v] == False):
+                    check[v] = True
+                    if (source_node,v) not in self.all_pair_shortest_path:
+                        self.all_pair_shortest_path[(source_node,v)] = height
+                        self.all_pair_shortest_path[(v,source_node)] = height
+                    queue.append((v,height+1))
+
+                    count+=1
+                    if(count == self.num_node):
+                        return 
+        # return all_pair_shortest_path 
+
+    def run(self):
+        for source_node in range(self.num_node):
+            self.BFS(source_node)
+
+        key_list = list(self.all_pair_shortest_path.keys())
+
+        for u,v in key_list:
+            if(self.report_size[u] !=0 and self.report_size[v]!=0) or (u ==0 and self.report_size[v]!=0) or (v == 0 and self.report_size[u]!=0):
+                self.graph_hat[u].append(v)
+            else:
+                del self.all_pair_shortest_path[(u,v)]  
+        return self.graph_hat,self.all_pair_shortest_path
+
+class LAST:
+    def __init__(self,graph_hat,edge,report_size,num_relay,num_node):
+        self.graph_hat = graph_hat
+        self.edge = edge 
+        self.report_size = report_size
+        self.num_relay = num_relay
+        self.num_node = num_node
+        self.Tm = [[] for i in range(self.num_node)]
+        self.Ts = {}
+        self.parent_Ts = [-1 for i in range(self.num_node)]
+        self.dist_Ts = [False for i in range(self.num_node)]
+        self.tree = [[] for i in range(self.num_node)]
+    def find(self,parent,i):
+        if parent[i] == i:
+            return i
+        return self.find(parent,parent[i])
+
+    def union(self,parent ,rank,x,y):
+        xroot = self.find(parent,x)
+        yroot = self.find(parent,y)
+            
+        if rank[xroot]< rank[yroot]:
+            parent[xroot] = yroot
+        elif rank[xroot]>rank[yroot]:
+            parent[yroot] = xroot
+        else:
+            parent[yroot] = xroot
+            rank[xroot] +=1
+
+    def kruskal(self):
+        res = {}
+        e = 0
+        parent = [i for i in range(self.num_node)]
+        rank = [0 for i in range(self.num_node)]
+        edge = dict(sorted(self.edge.items(),key = lambda item : item[1]))
+        number_of_edge = self.num_node * 2 - 2
+        for node,weight in edge.items():
+            x = self.find(parent,node[0])
+            y = self.find(parent,node[1])
+            if x!=y:
+                e+=2
+                res[(node[0],node[1])] = weight
+                res[(node[1],node[0])] = weight
+                self.union(parent,rank,x,y)
+                if e == number_of_edge:
+                    for u,v in res.keys():
+                        self.Tm[u].append(v)
+
+                    for i in self.Tm:
+                        i.sort()
+                    return 
+
+        for u,v in res.keys():
+            self.Tm[u].append(v)
+
+        for i in self.Tm:
+            i.sort()
+        return                  
+
+    def spt_with_weight(self,source_node):
+        dist = [INF for i in range(self.num_node)]
+        dist[source_node] = 0
+        check = [False for i in range(self.num_node)]
+        self.parent_Ts[source_node] = -2
+        
+        cnt = 0
+        while cnt < self.num_node - self.num_relay:
+            index = dist.index(min(dist))
+            self.dist_Ts[index] = min(dist)
+            check[index] = True
+            cnt+=1
+
+            for item in self.graph_hat[index]:
+                if(check[item] == False):
+                    if(dist[item]>dist[index] + self.edge[(index,item)]):
+                        dist[item] = dist[index] + self.edge[(index,item)]
+                        self.parent_Ts[item] = index
+            dist[index] = INF
+
+            for i in range(1,self.num_node):
+                if self.report_size[i] != 0:
+                    self.Ts[(i,self.parent_Ts[i])] = self.edge[(i,self.parent_Ts[i])]                                   
+                    self.Ts[(self.parent_Ts[i],i)] = self.edge[(self.parent_Ts[i],i)]
+
+            
+    def LAST_TREE(self,alpha = 3):
+        # initialize
+        dis = [INF for i in range(self.num_node)]
+        dis[0] = 0
+        parent = [-1 for i in range(self.num_node)]
+        check = [False for i in range(self.num_node)]                   
+
+        def relax(self,u,v,dis,parent):
+            if(dis[v] > dis[u] + self.edge[(u,v)]):
+                dis[v] = dis[u] + self.edge[(u,v)]
+                parent[v] = u
+            return dis,parent
+
+        def add_path(self,dis,parent,node):
+            if(dis[node]>self.dist_Ts[node]):
+                dis,parent = add_path(self,dis,parent,self.parent_Ts[node])
+                dis,parent = relax(self,self.parent_Ts[node],node,dis,parent)
+            return dis,parent
+
+        def dfs(self,node,dis,parent,check):
+            check[node] = True
+            if(dis[node] > alpha*self.dist_Ts[node]):
+                dis,parent = add_path(self,dis,parent,node)
+            for v in self.Tm[node]:
+                if check[v] == False:
+                    dis,parent = relax(self,node,v,dis,parent)
+                    dis,parent = dfs(self,v,dis,parent,check)
+                    dis,parent = relax(self,v,node,dis,parent)
+            return dis,parent   
+
+        dis,parent = dfs(self,0,dis,parent,check)
+        
+        for i in range(1,self.num_node):
+            if self.report_size[i] != 0:
+                self.tree[i].append(parent[i])
+                self.tree[parent[i]].append(i)
+
+    def run(self):
+        self.kruskal()
+        self.spt_with_weight(0)
+        self.LAST_TREE(3)
+        return self.tree
+
+class graph_hat_hat:
+    def __init__(self,graph,last_tree,report_size,num_node):
+        self.graph = graph
+        self.last_tree = last_tree
+        self.report_size = report_size
+        self.num_node = num_node
+        # self.adjacent_list = []
+        self.graph_hat_hat_edge = []
+        self.graph_hat_hat = [[] for i in range(self.num_node)]
+
+    def find_path(self,adjacent_list,node):
+        queue = []
+        check = [False for i in range(self.num_node)]
+        father = [-1 for i in range(self.num_node)]
+        queue.append(node)
+        check[node] = True
+
+        while len(queue) != 0:
+            # if_break = True
+            current = queue[0]
+            queue.pop(0)
+            for i in self.graph[current]:
+                if check[i] == False:
+                    check[i] = True
+                    father[i] = current
+                    queue.append(i)
+        
+        for it in adjacent_list:
+            item = it
+
+            while father[item] != -1:
+                if(father[item],item) not in self.graph_hat_hat_edge:
+                    self.graph_hat_hat_edge.append((father[item],item))
+                    self.graph_hat_hat_edge.append((item,father[item]))
+
+                if father[item] not in self.graph_hat_hat[item]:
+                    self.graph_hat_hat[item].append(father[item])
+
+                if item not in self.graph_hat_hat[father[item]]:
+                    self.graph_hat_hat[father[item]].append(item)
+                item = father[item]
+
+    def run(self):
+        
+        for index,adjacent_list in enumerate(self.last_tree):               
+            if len(adjacent_list) > 0:
+                self.find_path(adjacent_list,index)
+
+        return self.graph_hat_hat
+
+
+"""
 Create shortest path tree
 Param: number of node, s, adjList
 Output: tree
@@ -508,14 +734,39 @@ def mfea(tasks, rmp=0.3, generation=100):
     scalarFitness = evaluateScalarFitness(factorialRank)
     individualBestCost = np.array([populationFactorialCost[idx][skillFactor[idx]] for idx in range(size)])
 
+    # 2 approximation
+    
     shortestPathTree = SPT(tasks[0].n+tasks[0].m+1, tasks[0].adjList)
+
+    # 7 approximation
+    rn_num_node = tasks[1].n+tasks[1].m+1
+    mecat_rn_adjList = [[] for i in range(rn_num_node)]
+    for key,value in tasks[1].adjList.items():
+        mecat_rn_adjList[key] = value.copy() 
+    
+    make_graph_hat = graph_hat(mecat_rn_adjList,tasks[1].s,rn_num_node)
+    graph_hat_found,all_pair_shortest_path  = make_graph_hat.run() 
+    
+    make_last_tree = LAST(graph_hat_found,all_pair_shortest_path,tasks[1].s,tasks[1].m,rn_num_node)
+    last_tree = make_last_tree.run()
+
+    make_graph_hat_hat = graph_hat_hat(mecat_rn_adjList,last_tree,tasks[1].s,rn_num_node)
+    graph_hat_hat_found = make_graph_hat_hat.run()
+
+    mecat_rn_graph = {}
+    for index,adj_list in enumerate(graph_hat_hat_found):
+        mecat_rn_graph[index] = adj_list.copy()
+
+    MECATRN_shortestPathTree = SPT(rn_num_node, mecat_rn_graph)
     # Loops
     for i in range(generation):
         offspringPopulation = np.empty((0, maximumNumberOfEdges), float)
         offspringSkillFactor = np.empty((0, 1), float)
         # potentialPopulation = np.empty((0, maximumNumberOfEdges), float)
         while(len(offspringPopulation) < size):
-            idxP1, idxP2 = tournamentSelectionParents(population, 4, scalarFitness)
+            # idxP1, idxP2 = tournamentSelectionParents(population.shape[0], 4, scalarFitness)
+            idxP1 = tournamentSelectionIndividual(population.shape[0],5,scalarFitness)
+            idxP2 = tournamentSelectionIndividual(population.shape[0],5,scalarFitness)
             rand = np.random.random()
             if(skillFactor[idxP1] == skillFactor[idxP2] or rand < rmp):
                 o1, o2 = crossover(population[idxP1], population[idxP2], uc)
@@ -532,6 +783,10 @@ def mfea(tasks, rmp=0.3, generation=100):
             potentialSkillFactor = np.array([0]*(K*NE))
             potentialCost = evaluatePopulationFactorialCost(potentialPopulation, list([tasks[0]]))
 
+            MECATRN_potentialPopulation = createPotentialPopulation(MECATRN_shortestPathTree, tasks[1].adjList, tasks[1].numberOfEdges, maximumNumberOfEdges, len(tasks))
+            MECATRN_potentialSkillFactor = np.array([1]*(K*NE))
+            MECATRN_potentialCost = evaluatePopulationFactorialCost(MECATRN_potentialPopulation, list([tasks[1]]))
+
         # Factorial cost of offspring population
         offspringCost = evaluateOffspringCost(offspringPopulation, offspringSkillFactor, tasks)
 
@@ -539,21 +794,29 @@ def mfea(tasks, rmp=0.3, generation=100):
         population = np.vstack([population, offspringPopulation])
         if(t>deltaT and t%deltaT == 0):
             population = np.vstack([population, potentialPopulation])
+            population = np.vstack([population, MECATRN_potentialPopulation])
 
         # Update scalar fitness and skill factor for each individual
         skillFactor = np.append(skillFactor, offspringSkillFactor)
         if(t>deltaT and t%deltaT == 0):
             skillFactor = np.append(skillFactor, potentialSkillFactor)
+            skillFactor = np.append(skillFactor, MECATRN_potentialSkillFactor)
+
         individualBestCost = np.append(individualBestCost, offspringCost)
         if(t>deltaT and t%deltaT == 0):
             individualBestCost = np.append(individualBestCost, potentialCost)
+            individualBestCost = np.append(individualBestCost, MECATRN_potentialCost)
+            
         scalarFitness = 1 / (evaluateRankBaseOnSkillFactor(individualBestCost, skillFactor, len(tasks))+1)
 
         # choose fittest individual by tournament selection
         idxFittestPopulation = list()
-        for _ in range(size):
-            idxFittestIndividual = tournamentSelectionIndividual(population.shape[0], 21, scalarFitness)
+        for _ in range(size//4):
+            idxFittestIndividual = tournamentSelectionIndividual(population.shape[0], 8, scalarFitness)
             idxFittestPopulation.append(idxFittestIndividual)
+
+        for _ in range(size//4*3):
+            idxFittestPopulation.append(int(np.random.randint(0, population.shape[0],1)[0]))
 
         # idxFittestPopulation = np.argsort(-scalarFitness)[:size]
 
