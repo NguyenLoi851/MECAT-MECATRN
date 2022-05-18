@@ -71,7 +71,7 @@ class UnionFind:
 
 """
 Decode individual from genotype to pheotype for each task
-Param: task (class Task), individual (array)
+Param: task (class Task), individual (np.array)
 Output: adjacent List (dictionary of (int, list))
 """
 def decode(task, individual):
@@ -333,7 +333,7 @@ def sbxCrossover(p1, p2, uc=8):
 
 
 """
-Crossover 2 parents individual
+Crossover 2 parents individuals
 Param: 2 individuals, uc
 Output: 2 children individual
 """
