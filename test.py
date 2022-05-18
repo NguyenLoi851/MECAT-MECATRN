@@ -1,3 +1,4 @@
+from concurrent.futures import process
 import numpy as np
 import random
 
@@ -94,6 +95,7 @@ individual: 2darray, edge: list
 """
 
 def EPO_withPhenotype(individual, edge):
+    print("EPO")
     tree = decode(individual)
     if(edge[1] in tree[edge[0]]):
         return tree
@@ -102,11 +104,26 @@ def EPO_withPhenotype(individual, edge):
     idxNode = list()
     idxNode.append(individual[0].index(edge[0])) 
     idxNode.append(individual[0].index(edge[1]))
+    isReversed = False
     # edge[1] will be ancestor of edge[0] in tree
     if(individual[1][idxNode[0]] < individual[1][idxNode[1]]):
         edge.reverse()
         idxNode.reverse()
-    
+        isReversed = True
+    # chieck ancestor of edge[0]
+    cloneIdxNode0 = idxNode[0]
+    for _ in range(individual[1][idxNode[0]] - individual[1][idxNode[1]]):
+        deepth = individual[1][cloneIdxNode0]
+        idxParentNode = cloneIdxNode0 - 1
+        while True:
+            if(individual[1][idxParentNode] == deepth -1):
+                cloneIdxNode0 = idxParentNode
+                break
+            idxParentNode -= 1
+    if (cloneIdxNode0 != idxNode[1]):
+        if(isReversed == True):
+            edge.reverse()
+            idxNode.reverse()
     # find parent of edge[0]
     deepth = individual[1][idxNode[0]]
     idxParentNode = idxNode[0]-1
@@ -125,7 +142,7 @@ def EPO_withPhenotype(individual, edge):
     newIndividual = encode(tree, individual[0][idxRoot])
     return newIndividual
 
-newIndividual = EPO_withPhenotype(individual,[4,9])
+newIndividual = EPO_withPhenotype(individual,[5,9])
 
 # print(newIndividual)
 
@@ -150,12 +167,13 @@ list of individuals
 """
 def ECO_withPhenotype(individuals):
     A = individuals[0]
+    A = A.tolist()
     B = individuals[1]
+    B = B.tolist()
     Fab = A
     n = len(A[0])
     i = random.randint(n//4, 3*n//4)
     vr = np.array(random.sample(range(n),i))
-    vr = np.sort(vr)
     for node in vr:
         idxNodeInB = B[0].index(node)
         if(B[1][idxNodeInB] != 0):
@@ -165,9 +183,11 @@ def ECO_withPhenotype(individuals):
             while True:
                 if(B[1][idxParentNode] == deepth -1):
                     parentNode = B[0][idxParentNode]
-                    EPO_withPhenotype(Fab,list([parentNode, node]))
+                    Fab = EPO_withPhenotype(np.array(Fab),list([node, parentNode]))
+                    break
+                idxParentNode -=1
         
-    return Fab
+    return np.array(Fab)
 
 
 treeA = {0:[4],4:[0,8,6,5],8:[4,9],9:[8,1,2],
@@ -178,5 +198,23 @@ treeB = {0:[9,6,1],9:[0,5],5:[9,7],7:[5,4],4:[7],
 individualA = encode(treeA,0)
 individualB = encode(treeB,0)
 
-print(individualA)
-print(individualB)
+# print(individualA)
+# print(individualB)
+
+Child = ECO_withPhenotype([individualA, individualB])
+print()
+print("-------------")
+print()
+print(Child)
+
+Child = Child.tolist()
+
+string =[]
+for number in Child[0]:
+    char = "a"
+    i = ord(char[0])
+    i += number
+    char = chr(i)
+    string.append(char)
+Child[0] = string
+print(np.array(Child))

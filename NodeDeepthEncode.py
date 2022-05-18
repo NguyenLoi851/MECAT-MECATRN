@@ -7,11 +7,13 @@
 - Return last generation
 """
 
+from random import randrange
 import numpy as np
 import random
 import math
 import os
 
+N = 200
 Tx = 2
 Rx = 1
 q = 4
@@ -25,7 +27,9 @@ def decode(individual):
     individual = individual.tolist()
     tree = {}
     for i in range(len(individual[0])-1,0,-1):
+        print("30",i)
         deepth = individual[1][i]
+        print("32",deepth)
         idxParentNode = i-1
         while True:
             if(individual[1][idxParentNode] == deepth - 1):
@@ -68,7 +72,7 @@ class Task:
     """
     def evaluateIndividualFactorialCost(self, individual):
         result = 0
-        pheotype = decode(self, individual) # adjacent list
+        pheotype = decode(individual) # adjacent list
                                             # (dictionary of (int, list))
         z = np.array([0]*(self.n+self.m+1))
         while(len(pheotype) != 1):
@@ -139,7 +143,26 @@ Param: population, tasks
 Output: 2-D array, arr[i][j] is factorial cost of individual pi on task Tj
 """
 def evaluatePopulationFactorialCost(population, tasks):
-    return np.array([np.apply_along_axis(task.evaluateIndividualFactorialCost,1, population) for task in tasks]).T
+    # print(population[0])
+    # return np.array([np.apply_along_axis(task.evaluateIndividualFactorialCost,2, population) for task in tasks]).T
+    
+    # for task in tasks:
+    #     costOfTask = np.array([])
+    #     for individual in population:
+    #         cost = task.evaluateIndividualFactorialCost(individual)
+    #         costOfTask = np.append(costOfTask, cost)
+    #     res = np.vstack([res, costOfTask])
+    # res = np.delete(res, 0, axis=0)
+    # return res
+    res = np.array([0]*len(tasks))
+    for individual in population:
+        costOfTask = np.array([])
+        for task in tasks:
+            cost = task.evaluateIndividualFactorialCost(individual)
+            costOfTask = np.append(costOfTask, cost)
+        res = np.vstack([res, costOfTask])
+    res = np.delete(res, 0, axis=0)
+    return res
 
 """
 Evaluate factorial rank
@@ -191,11 +214,27 @@ def EPO_withPhenotype(individual, edge):
     idxNode = list()
     idxNode.append(individual[0].index(edge[0])) 
     idxNode.append(individual[0].index(edge[1]))
+    isReversed = False
     # edge[1] will be ancestor of edge[0] in tree
     if(individual[1][idxNode[0]] < individual[1][idxNode[1]]):
         edge.reverse()
         idxNode.reverse()
-    
+        isReversed = True
+    # chieck ancestor of edge[0]
+    cloneIdxNode0 = idxNode[0]
+    for _ in range(individual[1][idxNode[0]] - individual[1][idxNode[1]]):
+        deepth = individual[1][cloneIdxNode0]
+        idxParentNode = cloneIdxNode0 - 1
+        while True:
+            if(individual[1][idxParentNode] == deepth -1):
+                cloneIdxNode0 = idxParentNode
+                break
+            idxParentNode -= 1
+    if (cloneIdxNode0 != idxNode[1]):
+        if(isReversed == True):
+            edge.reverse()
+            idxNode.reverse()
+    print("Edge: ", edge)
     # find parent of edge[0]
     deepth = individual[1][idxNode[0]]
     idxParentNode = idxNode[0]-1
@@ -214,15 +253,34 @@ def EPO_withPhenotype(individual, edge):
     newIndividual = encode(tree, individual[0][idxRoot])
     return newIndividual
 
-
 """
 Crossover 2 parents individuals
 Param: 2 individuals
 Output: child individual
 """
-def ECO_withPhenotype():
-
-    pass
+def ECO_withPhenotype(individuals):
+    A = individuals[0]
+    A = A.tolist()
+    B = individuals[1]
+    B = B.tolist()
+    Fab = A
+    n = len(A[0])
+    i = random.randint(n//4, 3*n//4)
+    vr = np.array(random.sample(range(n),i))
+    for node in vr:
+        idxNodeInB = B[0].index(node)
+        if(B[1][idxNodeInB] != 0):
+            # find parent of node in B
+            deepth = B[1][idxNodeInB]
+            idxParentNode = idxNodeInB - 1
+            while True:
+                if(B[1][idxParentNode] == deepth -1):
+                    parentNode = B[0][idxParentNode]
+                    Fab = EPO_withPhenotype(np.array(Fab),list([node, parentNode]))
+                    break
+                idxParentNode -=1
+        
+    return np.array(Fab)
 
 """
 Evaluate factorial cost for offspring population
@@ -268,21 +326,211 @@ def encode(tree, root):
     dfs(tree, root, deepth)
     return np.array(individual)
 
+def find(u, parent):
+    if parent[u] == u:
+        return u
+    return find(parent[u], parent)
+
+
+def union(x, y, parent, rank):
+    rootX = find(x, parent)
+    rootY = find(y, parent)
+    if rank[rootX] > rank[rootY]:
+        parent[rootX] = parent[rootY]
+
+    elif rank[rootY] > rank[rootX]:
+        parent[rootY] = parent[rootX]
+
+    else:
+        parent[rootX] = parent[rootY]
+        rank[rootX] += 1
+
+    return parent, rank
 """
 Generate a random tree from graph
 Param: Graph
 Output: Tree, root of tree
 """
-def generateRandomTree():
-    pass
+def genTree(graph):
+    edgeList = []
+    res = {}
+    parent = [i for i in range(len(graph))]
+    rank = [0 for i in range(len(graph))]
 
+    for i in range(len(graph)):
+        res[i] = []
+
+    for node, adj_list in graph.items():
+        for v in adj_list:
+            if(node < v):
+                edgeList.append((node, v))
+
+    random.shuffle(edgeList)
+    # print(len(edgeList))
+    cnt = 0
+    e = 0
+    while cnt < len(graph) - 1:
+        x, y = edgeList[e]
+        e += 1
+        if find(x, parent) != find(y, parent):
+            res[x].append(y)
+            res[y].append(x)
+            parent, rank = union(x, y, parent, rank)
+            cnt += 1
+
+    for i in range(len(graph)):
+        res[i] = sorted(res[i])
+
+    root = randrange(len(graph))
+
+    return root, res
+    
 """
 Multi-factorial Evolutionary Algorithm
 Param: tasks (array of class Task), rmp, number of generation
 Output: best individual for each task
 """
-def mfea():
-    pass
+def mfea(tasks, rmp=0.3, generation=100):
+    # Initial population with N individuals for each task
+    # history = np.empty((0, len(tasks)), float)
+    lengthOfGen = len(tasks[0].adjList)
+    K = len(tasks)
+    size = N*K  # size of population
+    # maximumNumberOfEdges = 0
+    # for task in tasks:
+    #     maximumNumberOfEdges = max(task.numberOfEdges, maximumNumberOfEdges)
+    # population = np.empty((0, maximumNumberOfEdges), float)
+    # for task in tasks:
+    #     populationOfTask = np.empty((0, task.numberOfEdges), float)
+    #     for i in range(N):
+    #         populationOfTask = np.vstack([populationOfTask,f(task.numberOfEdges)])
+    #     for individual in populationOfTask:
+    #         population = np.vstack([population,representInCommonSpace(individual, maximumNumberOfEdges)])
+
+
+    population = np.array([[[0]*lengthOfGen,[0]*lengthOfGen]])
+    for task in tasks:
+        for i in range(N):
+            tree = genTree(task.adjList)[1]
+            population = np.vstack([population, [encode(tree,0)]])
+    population = np.delete(population, 0, axis=0)
+    print(population)
+    t = 0
+    # tree = genTree(tasks[0].adjList)[1]
+    # print(encode(tree,0))
+    # print("-------")
+    
+    # tree = genTree(tasks[0].adjList)[1]
+    # population = np.array([encode(tree,0)])
+    # population = np.vstack([population,[ encode(genTree(tasks[0].adjList)[1],0)]])
+    # population = np.delete(population, 0, axis=0)
+    # population = np.array([[[0]*3,[0]*3]])
+    # population = np.vstack([population,[[[1,2,3],[4,5,9]]]])
+    # # population = np.array([[2,3,4],[4,5,6]])
+    # # population = np.append(population,[[1,2,3],[4,6,9]])
+    # population = np.vstack([population,[[[1,2,3],[4,6,9]]]])
+    # population = np.delete(population,[0,1],0)
+    # print(population)
+    # exit(1)
+
+    # Evaluate factorial cost of population for all the tasks
+    populationFactorialCost = evaluatePopulationFactorialCost(population, tasks)
+    factorialRank = evaluateFactorialRank(populationFactorialCost)
+    skillFactor = evaluateSkillFactor(factorialRank)
+    scalarFitness = evaluateScalarFitness(factorialRank)
+    individualBestCost = np.array([populationFactorialCost[idx][skillFactor[idx]] for idx in range(size)])
+
+    # Loops
+    for i in range(generation):
+        # offspringPopulation = np.empty((0, maximumNumberOfEdges), float)
+        offspringPopulation = np.array([[[0]*lengthOfGen,[0]*lengthOfGen]])
+        offspringSkillFactor = np.empty((0, 1), float)
+        # potentialPopulation = np.empty((0, maximumNumberOfEdges), float)
+        while(len(offspringPopulation) < size):
+            # idxP1, idxP2 = tournamentSelectionParents(population.shape[0], 4, scalarFitness)
+            idxP1 = tournamentSelectionIndividual(population.shape[0],5,scalarFitness)
+            idxP2 = tournamentSelectionIndividual(population.shape[0],5,scalarFitness)
+            rand = np.random.random()
+            if(skillFactor[idxP1] == skillFactor[idxP2] or rand < rmp):
+                # o1, o2 = crossover(population[idxP1], population[idxP2], uc)
+                # offspringSkillFactor = np.append(offspringSkillFactor,[np.random.choice([skillFactor[idxP1], skillFactor[idxP2]]) for i in range(2)])
+                o1 = ECO_withPhenotype([population[idxP1], population[idxP2]])
+                o2 = ECO_withPhenotype([population[idxP2], population[idxP1]])
+                offspringSkillFactor = np.append(offspringSkillFactor,[np.random.choice([skillFactor[idxP1], skillFactor[idxP2]]) for i in range(2)])
+            else:
+                # o1 = polynomialMutate(population[idxP1], um)
+                # o2 = polynomialMutate(population[idxP2], um)
+                # offspringSkillFactor = np.append(offspringSkillFactor,[skillFactor[idxP1], skillFactor[idxP2]])
+                o1 = EPO_withPhenotype(population[idxP1])
+                o2 = EPO_withPhenotype(population[idxP2])
+                offspringSkillFactor = np.append(offspringSkillFactor,[skillFactor[idxP1], skillFactor[idxP2]])
+            offspringPopulation = np.vstack([offspringPopulation, [o1]])
+            offspringPopulation = np.vstack([offspringPopulation, [o2]])
+
+        # if(t>deltaT and t%deltaT == 0):
+        #     potentialPopulation = createPotentialPopulation(shortestPathTree, tasks[0].adjList, tasks[0].numberOfEdges, maximumNumberOfEdges, len(tasks))
+        #     potentialSkillFactor = np.array([0]*(K*NE))
+        #     potentialCost = evaluatePopulationFactorialCost(potentialPopulation, list([tasks[0]]))
+
+        #     MECATRN_potentialPopulation = createPotentialPopulation(MECATRN_shortestPathTree, tasks[1].adjList, tasks[1].numberOfEdges, maximumNumberOfEdges, len(tasks))
+        #     MECATRN_potentialSkillFactor = np.array([1]*(K*NE))
+        #     MECATRN_potentialCost = evaluatePopulationFactorialCost(MECATRN_potentialPopulation, list([tasks[1]]))
+
+        # Factorial cost of offspring population
+        offspringCost = evaluateOffspringCost(offspringPopulation, offspringSkillFactor, tasks)
+
+        # Update population
+        population = np.vstack([population, offspringPopulation])
+        # if(t>deltaT and t%deltaT == 0):
+        #     population = np.vstack([population, potentialPopulation])
+        #     population = np.vstack([population, MECATRN_potentialPopulation])
+
+        # Update scalar fitness and skill factor for each individual
+        skillFactor = np.append(skillFactor, offspringSkillFactor)
+        # if(t>deltaT and t%deltaT == 0):
+        #     skillFactor = np.append(skillFactor, potentialSkillFactor)
+        #     skillFactor = np.append(skillFactor, MECATRN_potentialSkillFactor)
+
+        individualBestCost = np.append(individualBestCost, offspringCost)
+        # if(t>deltaT and t%deltaT == 0):
+        #     individualBestCost = np.append(individualBestCost, potentialCost)
+        #     individualBestCost = np.append(individualBestCost, MECATRN_potentialCost)
+            
+        scalarFitness = 1 / (evaluateRankBaseOnSkillFactor(individualBestCost, skillFactor, len(tasks))+1)
+
+        # choose fittest individual by tournament selection
+        idxFittestPopulation = list()
+        for _ in range(size):
+            idxFittestIndividual = tournamentSelectionIndividual(population.shape[0], 8, scalarFitness)
+            idxFittestPopulation.append(idxFittestIndividual)
+
+        # for _ in range(size//4*3):
+        #     idxFittestPopulation.append(int(np.random.randint(0, population.shape[0],1)[0]))
+
+        # idxFittestPopulation = np.argsort(-scalarFitness)[:size]
+
+        population = population[idxFittestPopulation]
+        skillFactor = skillFactor[idxFittestPopulation]
+        individualBestCost = individualBestCost[idxFittestPopulation]
+
+        t += 1
+
+        nextHistory = np.empty((0, len(tasks)), float)
+        for idx in range(len(tasks)):
+            try:
+                bestCostForTask = np.min(individualBestCost[np.where(skillFactor == idx)[0]])
+            except:
+                populationFactorialCost = evaluatePopulationFactorialCost(population, list([tasks[idx]]))
+                bestCostForTask = np.min(populationFactorialCost)
+            nextHistory = np.append(nextHistory, bestCostForTask)
+        
+        history = np.vstack([history, nextHistory])
+        print('Epoch [{}/{}], Best Cost: {}'.format(i + 1, generation, nextHistory))
+
+    # Result
+    sol_idx = [np.argmin(individualBestCost[np.where(skillFactor == idx)]) for idx in range (len(tasks))]
+    return [population[np.where(skillFactor == idx)[0]][sol_idx[idx]] for idx in range(len(tasks))], history
+
 
 # main
 mecatDataPath = os.getcwd()+'/dataset4mecat/mecat'

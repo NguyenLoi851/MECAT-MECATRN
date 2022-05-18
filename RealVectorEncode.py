@@ -247,7 +247,16 @@ Param: population, tasks
 Output: 2-D array, arr[i][j] is factorial cost of individual pi on task Tj
 """
 def evaluatePopulationFactorialCost(population, tasks):
-    return np.array([np.apply_along_axis(task.evaluateIndividualFactorialCost,1, population) for task in tasks]).T
+    # return np.array([np.apply_along_axis(task.evaluateIndividualFactorialCost,1, population) for task in tasks]).T
+    res = np.array([0]*len(tasks))
+    for individual in population:
+        costOfTask = np.array([])
+        for task in tasks:
+            cost = task.evaluateIndividualFactorialCost(individual)
+            costOfTask = np.append(costOfTask, cost)
+        res = np.vstack([res, costOfTask])
+    res = np.delete(res, 0, axis=0)
+    return res
 
 
 """
