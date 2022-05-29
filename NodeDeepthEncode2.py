@@ -24,25 +24,44 @@ Param: individual (2darray)
 Output: adjacent List (dictionary of (int, list))
 """
 def decode(individual):
+    cnt = 0
     individual = individual.tolist()
     tree = {}
     for i in range(len(individual[0])-1,0,-1):
         deepth = individual[1][i]
         idxParentNode = i-1
         while True:
-            if(individual[1][idxParentNode] == deepth - 1):
-                node = individual[0][i]
-                parentNode = individual[0][idxParentNode]
-                if(node not in tree):
-                    tree[node] = list([parentNode])
-                else:
-                    tree[node].append(parentNode)
-                if(parentNode not in tree):
-                    tree[parentNode] = list([node])
-                else:
-                    tree[parentNode].append(node)
-                break
-            idxParentNode -= 1
+            try:
+                if(individual[1][idxParentNode] == deepth - 1):
+                    node = individual[0][i]
+                    parentNode = individual[0][idxParentNode]
+                    if(node not in tree):
+                        tree[node] = list([parentNode])
+                    else:
+                        tree[node].append(parentNode)
+                    if(parentNode not in tree):
+                        tree[parentNode] = list([node])
+                    else:
+                        tree[parentNode].append(node)
+                    break
+                idxParentNode -= 1
+            except:
+                exit(1)
+                return {83: [0], 0: [83, 18], 87: [78], 78: [87, 51, 31, 18], 62: [88], 88: [62, 51], 
+                51: [88, 55, 78], 55: [51], 64: [76], 76: [64, 26, 71], 15: [26], 26: [15, 76], 
+                71: [76, 31], 31: [71, 1, 78], 11: [59], 59: [11, 9], 9: [59, 29], 29: [9, 12], 12: [29, 1], 
+                1: [12, 31], 18: [78, 72, 57, 0], 92: [65], 65: [92, 49, 38], 49: [65], 38: [65, 58, 30, 45], 
+                91: [58], 58: [91, 75, 32, 8, 38], 90: [68], 68: [90, 24, 52], 10: [24], 24: [10, 68], 
+                52: [68, 96], 96: [52, 48, 67], 42: [47], 47: [42, 27], 27: [47, 48], 48: [27, 96], 
+                67: [96, 93, 75], 28: [93], 93: [28, 67], 75: [67, 43, 23, 58], 43: [75], 69: [23], 
+                23: [69, 75], 32: [58], 8: [58], 36: [33], 33: [36, 98], 98: [33, 99], 99: [98, 53, 30], 
+                53: [99], 30: [99, 38], 45: [38, 72], 72: [45, 7, 18], 73: [16], 16: [73, 3, 79], 82: [50], 
+                50: [82, 2, 61], 66: [2], 2: [66, 5, 50], 74: [5], 5: [74, 46, 2], 84: [85], 85: [84, 94], 
+                94: [85, 60, 6, 77], 95: [60], 60: [95, 94], 89: [6], 6: [89, 94], 77: [94, 46], 46: [77, 5], 
+                61: [50, 97], 97: [61, 63], 63: [97, 39, 25, 3], 39: [63], 80: [25], 25: [80, 35, 63], 35: [25], 
+                3: [63, 14, 16], 86: [14], 14: [86, 81, 3], 70: [81], 81: [70, 34, 4, 14], 19: [22], 22: [19, 34], 
+                34: [22, 20, 17, 81], 54: [20], 20: [54, 34], 17: [34], 37: [40], 40: [37, 4], 4: [40, 13, 81], 
+                41: [13], 13: [41, 4], 79: [16, 7], 7: [79, 44, 72], 44: [7], 56: [21], 21: [56, 57], 57: [21, 18]}
     return tree
 
 """
@@ -317,23 +336,74 @@ def eco2(gen1, gen2):
     i = random.randint(num_node//4, 3*num_node//4)
     vr = random.sample(range(num_node), i)
     # vr = [5, 6, 8, 3]
-    childGen = gen2
+    childGen = (gen2[0].copy(), gen2[1].copy())
     for k in vr:
         idxK = gen1[0].index(k)
         if gen1[1][idxK] > 0:
             for index in range(idxK-1, -1, -1):
                 if gen1[1][index] < gen1[1][idxK]:
-                    childGen = epo(childGen, gen1[0][idxK], gen1[0][index])
+                    childGenResult = np.copy(epo(childGen, gen1[0][idxK], gen1[0][index]))
+                    childGen = (childGenResult[0].tolist().copy(), childGenResult[1].tolist().copy())
                     break
-    return childGen
+    return np.array(childGen)
 
+def eco3(individual1, individual2):
+    A = individual1
+    A = A.tolist()
+    B = individual2
+    B = B.tolist()
+    Fab = A
+    n = len(A[0])
+    i = random.randint(n//4, 3*n//4)
+    vr = np.array(random.sample(range(n),i))
+    for node in vr:
+        idxNodeInB = B[0].index(node)
+        if(B[1][idxNodeInB] != 0):
+            # find parent of node in B
+            deepth = B[1][idxNodeInB]
+            idxParentNode = idxNodeInB - 1
+            while True:
+                if(B[1][idxParentNode] == deepth -1):
+                    parentNode = B[0][idxParentNode]
+                    Fab = epo(np.array(Fab), node, parentNode)  
+                    break
+                idxParentNode -=1
+        
+    return np.array(Fab)
+
+import copy
 
 def epo(gen, edge1, edge2):
+    # gen = [gen[0], gen[1]]
+    gen = gen.tolist()
     num_node = len(gen[0])
     childGen = gen
+    # childGen = (gen[0].copy(), gen[1].copy())
 
-    u = childGen[0].index(edge1)
-    v = childGen[0].index(edge2)
+    u = gen[0].index(edge1)
+    v = gen[0].index(edge2)
+    gg = [u,v,edge1,edge2]
+    # check if edge(edge1-edge2) is existed in gen
+    # check if edge1 is parent of edge2
+    if(u>v):
+        depth = childGen[1][u]
+        idxParentNode = u-1
+        while (idxParentNode>-1):
+            if(childGen[1][idxParentNode] == depth - 1):
+                if(idxParentNode == v):
+                    return np.array(childGen)
+            idxParentNode -= 1
+    elif(u<v):
+        depth = childGen[1][v]
+        idxParentNode = v-1
+        while (idxParentNode>-1):
+            if(childGen[1][idxParentNode] == depth - 1):
+                if(idxParentNode == u):
+                    return np.array(childGen)
+            idxParentNode -= 1
+    tree = decode(np.array(childGen))
+    if(edge1 in tree[edge2]):
+        return np.array(childGen)
 
     idxNode = list()
     idxNode.append(u) 
@@ -347,19 +417,12 @@ def epo(gen, edge1, edge2):
     cloneIdxNode0 = idxNode[0]
     for cnt in range(childGen[1][idxNode[0]] - childGen[1][idxNode[1]]):
         deepth = childGen[1][cloneIdxNode0]
-        print("Line 350: ", deepth)
         idxParentNode = cloneIdxNode0 - 1
-        print("Line 351: ", cnt)
         while True:
-            print(idxParentNode)
-            try:
-                if(childGen[1][idxParentNode] == deepth -1):
-                    cloneIdxNode0 = idxParentNode
-                    break
-                idxParentNode -= 1
-            except:
-                print("Line 361:", childGen[1])
-                exit(1)
+            if(childGen[1][idxParentNode] == deepth -1):
+                cloneIdxNode0 = idxParentNode
+                break
+            idxParentNode -= 1
             
     if (cloneIdxNode0 != idxNode[1]):
         if(isReversed == True):
@@ -371,22 +434,36 @@ def epo(gen, edge1, edge2):
     #     v = tmp
     v = idxNode[0]
     u = idxNode[1]
+
+    # if childGen[1][u] > childGen[1][v]:
+    #     u,v = v,u
     for k in range(v+1, num_node+1):
         if (k == num_node) or (childGen[1][k] <= childGen[1][v]):
-            tmplist0 = childGen[0][v:k]
-            tmplist1 = childGen[1][v:k]
+            tmplist0 = childGen[0][v:k].copy()
+            tmplist1 = childGen[1][v:k].copy()
             depthChange = tmplist1[0] - childGen[1][u] - 1
             del childGen[0][v:k]
             del childGen[1][v:k]
             for i in range(len(tmplist1)):
                 tmplist1[i] -= depthChange
-            childGen[0][u+1:u+1] = tmplist0
-            childGen[1][u+1:u+1] = tmplist1
-            
-            return childGen
-
-
-
+            if v>u:
+                childGen[0][u+1:u+1] = tmplist0.copy()
+                childGen[1][u+1:u+1] = tmplist1.copy()
+            elif v<u:
+                childGen[0][u+1-k+v:u+1-k+v] = tmplist0.copy()
+                childGen[1][u+1-k+v:u+1-k+v] = tmplist1.copy()             
+            break
+    # try:
+    #     abc = decode(childGen)
+    # except:
+    #     print(u,v)
+    #     print(edge1, edge2)
+    #     print(gg)
+    #     print(gen)
+    #     print(childGen)
+    #     print(gen == childGen)
+    #     exit(1)
+    return np.array(childGen)
 
 def find(u, parent):
     if parent[u] == u:
@@ -483,11 +560,14 @@ def mfea(tasks, rmp=0.3, generation=100):
             idxP1 = tournamentSelectionIndividual(population.shape[0],5,scalarFitness)
             idxP2 = tournamentSelectionIndividual(population.shape[0],5,scalarFitness)
             rand = np.random.random()
-            if(skillFactor[idxP1] == skillFactor[idxP2] or rand < rmp):
+            # if(skillFactor[idxP1] == skillFactor[idxP2] or rand < rmp):
+            if False:
                 # o1 = ECO_withPhenotype([population[idxP1], population[idxP2]])
                 # o2 = ECO_withPhenotype([population[idxP2], population[idxP1]])
-                o1 = eco2((population[idxP1][0].tolist(), population[idxP1][1].tolist()),(population[idxP2][0].tolist(), population[idxP2][1].tolist()))
-                o2 = eco2((population[idxP2][0].tolist(), population[idxP2][1].tolist()),(population[idxP1][0].tolist(), population[idxP1][1].tolist()))
+                # o1 = eco2((population[idxP1][0].tolist(), population[idxP1][1].tolist()),(population[idxP2][0].tolist(), population[idxP2][1].tolist()))
+                # o2 = eco2((population[idxP2][0].tolist(), population[idxP2][1].tolist()),(population[idxP1][0].tolist(), population[idxP1][1].tolist()))
+                o1 = eco3(population[idxP1], population[idxP2])
+                o2 = eco3(population[idxP2], population[idxP1])
                 offspringSkillFactor = np.append(offspringSkillFactor,[np.random.choice([skillFactor[idxP1], skillFactor[idxP2]]) for i in range(2)])
             else:
                 edge0 = randrange(len(tasks[0].adjList))
@@ -495,8 +575,10 @@ def mfea(tasks, rmp=0.3, generation=100):
                 edge1 = tasks[0].adjList[edge0][idxEdge1]
                 # o1 = EPO_withPhenotype(population[idxP1], list([edge0, edge1]))
                 # o2 = EPO_withPhenotype(population[idxP2], list([edge0, edge1]))
-                o1 = epo((population[idxP1][0].tolist(), population[idxP1][1].tolist()), edge0, edge1)
-                o2 = epo((population[idxP2][0].tolist(), population[idxP2][1].tolist()), edge0, edge1)
+                # o1 = epo((population[idxP1][0].tolist(), population[idxP1][1].tolist()), edge0, edge1)
+                # o2 = epo((population[idxP2][0].tolist(), population[idxP2][1].tolist()), edge0, edge1)
+                o1 = epo(population[idxP1], edge0, edge1)
+                o2 = epo(population[idxP2], edge0, edge1)
                 offspringSkillFactor = np.append(offspringSkillFactor,[skillFactor[idxP1], skillFactor[idxP2]])
             offspringPopulation = np.vstack([offspringPopulation, [o1]])
             offspringPopulation = np.vstack([offspringPopulation, [o2]])
@@ -519,7 +601,7 @@ def mfea(tasks, rmp=0.3, generation=100):
         # choose fittest individual by tournament selection
         idxFittestPopulation = list()
         for _ in range(size):
-            idxFittestIndividual = tournamentSelectionIndividual(population.shape[0], 8, scalarFitness)
+            idxFittestIndividual = tournamentSelectionIndividual(population.shape[0], 4, scalarFitness)
             idxFittestPopulation.append(idxFittestIndividual)
 
         # idxFittestPopulation = np.argsort(-scalarFitness)[:size]

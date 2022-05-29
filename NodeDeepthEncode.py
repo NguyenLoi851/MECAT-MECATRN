@@ -407,7 +407,8 @@ def mfea(tasks, rmp=0.3, generation=100):
             idxP1 = tournamentSelectionIndividual(population.shape[0],5,scalarFitness)
             idxP2 = tournamentSelectionIndividual(population.shape[0],5,scalarFitness)
             rand = np.random.random()
-            if(skillFactor[idxP1] == skillFactor[idxP2] or rand < rmp):
+            # if(skillFactor[idxP1] == skillFactor[idxP2] or rand < rmp):
+            if False:
                 o1 = ECO_withPhenotype([population[idxP1], population[idxP2]])
                 o2 = ECO_withPhenotype([population[idxP2], population[idxP1]])
                 offspringSkillFactor = np.append(offspringSkillFactor,[np.random.choice([skillFactor[idxP1], skillFactor[idxP2]]) for i in range(2)])
