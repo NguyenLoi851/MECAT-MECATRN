@@ -7,6 +7,8 @@
 - Return last generation
 """
 
+from datetime import datetime
+from fileinput import filename
 from random import randrange
 import numpy as np
 import random
@@ -407,8 +409,8 @@ def mfea(tasks, rmp=0.3, generation=100):
             idxP1 = tournamentSelectionIndividual(population.shape[0],5,scalarFitness)
             idxP2 = tournamentSelectionIndividual(population.shape[0],5,scalarFitness)
             rand = np.random.random()
-            # if(skillFactor[idxP1] == skillFactor[idxP2] or rand < rmp):
-            if False:
+            if(skillFactor[idxP1] == skillFactor[idxP2] or rand < rmp):
+            # if False:
                 o1 = ECO_withPhenotype([population[idxP1], population[idxP2]])
                 o2 = ECO_withPhenotype([population[idxP2], population[idxP1]])
                 offspringSkillFactor = np.append(offspringSkillFactor,[np.random.choice([skillFactor[idxP1], skillFactor[idxP2]]) for i in range(2)])
@@ -478,6 +480,10 @@ mecatDataFiles = sorted(mecatDataFiles,reverse=False)
 
 allResultCost = np.array([[0]*2])
 
+FileName = "Record/NDE-" + str(datetime.now())
+
+f = open(FileName,"a")
+
 for i in range(len(mecatDataFiles)):
     task1 = getInputFromFile(mecatDataPath+'/'+mecatDataFiles[i])
     task2 = getInputFromFile(mecatDataPath+'_rn/rn_'+mecatDataFiles[i])
@@ -487,17 +493,21 @@ for i in range(len(mecatDataFiles)):
 
     print("-----")
     resultPopulationCost = list()
-    for i in range(len(resultPopulation)):
-        print("Task", i+1)
-        print(tasks[i].evaluateIndividualFactorialCost(resultPopulation[i]))
+    for j in range(len(resultPopulation)):
+        print("Task", j+1)
+        print(tasks[j].evaluateIndividualFactorialCost(resultPopulation[j]))
         print()
-        resultPopulationCost.append(tasks[i].evaluateIndividualFactorialCost(resultPopulation[i]))
+        resultPopulationCost.append(tasks[j].evaluateIndividualFactorialCost(resultPopulation[j]))
     allResultCost = np.vstack([allResultCost, np.array(resultPopulationCost)])
     print("-----")
     print()
+    resultSentence = "File: "+str(mecatDataFiles[i])+" ["+str(allResultCost[i+1][0])+" "+str(allResultCost[i+1][1])+"]"+"\n"
+    f.write(resultSentence)
 
 allResultCost = np.delete(allResultCost, 0, axis = 0)
 
 for i in range(len(mecatDataFiles)):
     print("File: ", mecatDataFiles[i],end=' ')
     print(allResultCost[i])
+
+f.close()

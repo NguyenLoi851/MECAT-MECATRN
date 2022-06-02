@@ -7,6 +7,7 @@
 - Return last generation
 """
 
+from datetime import datetime
 from random import randrange
 import numpy as np
 import random
@@ -31,37 +32,36 @@ def decode(individual):
         deepth = individual[1][i]
         idxParentNode = i-1
         while True:
-            try:
-                if(individual[1][idxParentNode] == deepth - 1):
-                    node = individual[0][i]
-                    parentNode = individual[0][idxParentNode]
-                    if(node not in tree):
-                        tree[node] = list([parentNode])
-                    else:
-                        tree[node].append(parentNode)
-                    if(parentNode not in tree):
-                        tree[parentNode] = list([node])
-                    else:
-                        tree[parentNode].append(node)
-                    break
-                idxParentNode -= 1
-            except:
-                exit(1)
-                return {83: [0], 0: [83, 18], 87: [78], 78: [87, 51, 31, 18], 62: [88], 88: [62, 51], 
-                51: [88, 55, 78], 55: [51], 64: [76], 76: [64, 26, 71], 15: [26], 26: [15, 76], 
-                71: [76, 31], 31: [71, 1, 78], 11: [59], 59: [11, 9], 9: [59, 29], 29: [9, 12], 12: [29, 1], 
-                1: [12, 31], 18: [78, 72, 57, 0], 92: [65], 65: [92, 49, 38], 49: [65], 38: [65, 58, 30, 45], 
-                91: [58], 58: [91, 75, 32, 8, 38], 90: [68], 68: [90, 24, 52], 10: [24], 24: [10, 68], 
-                52: [68, 96], 96: [52, 48, 67], 42: [47], 47: [42, 27], 27: [47, 48], 48: [27, 96], 
-                67: [96, 93, 75], 28: [93], 93: [28, 67], 75: [67, 43, 23, 58], 43: [75], 69: [23], 
-                23: [69, 75], 32: [58], 8: [58], 36: [33], 33: [36, 98], 98: [33, 99], 99: [98, 53, 30], 
-                53: [99], 30: [99, 38], 45: [38, 72], 72: [45, 7, 18], 73: [16], 16: [73, 3, 79], 82: [50], 
-                50: [82, 2, 61], 66: [2], 2: [66, 5, 50], 74: [5], 5: [74, 46, 2], 84: [85], 85: [84, 94], 
-                94: [85, 60, 6, 77], 95: [60], 60: [95, 94], 89: [6], 6: [89, 94], 77: [94, 46], 46: [77, 5], 
-                61: [50, 97], 97: [61, 63], 63: [97, 39, 25, 3], 39: [63], 80: [25], 25: [80, 35, 63], 35: [25], 
-                3: [63, 14, 16], 86: [14], 14: [86, 81, 3], 70: [81], 81: [70, 34, 4, 14], 19: [22], 22: [19, 34], 
-                34: [22, 20, 17, 81], 54: [20], 20: [54, 34], 17: [34], 37: [40], 40: [37, 4], 4: [40, 13, 81], 
-                41: [13], 13: [41, 4], 79: [16, 7], 7: [79, 44, 72], 44: [7], 56: [21], 21: [56, 57], 57: [21, 18]}
+            if(individual[1][idxParentNode] == deepth - 1):
+                node = individual[0][i]
+                parentNode = individual[0][idxParentNode]
+                if(node not in tree):
+                    tree[node] = list([parentNode])
+                else:
+                    tree[node].append(parentNode)
+                if(parentNode not in tree):
+                    tree[parentNode] = list([node])
+                else:
+                    tree[parentNode].append(node)
+                break
+            idxParentNode -= 1
+            # except:
+            #     exit(1)
+            #     return {83: [0], 0: [83, 18], 87: [78], 78: [87, 51, 31, 18], 62: [88], 88: [62, 51], 
+            #     51: [88, 55, 78], 55: [51], 64: [76], 76: [64, 26, 71], 15: [26], 26: [15, 76], 
+            #     71: [76, 31], 31: [71, 1, 78], 11: [59], 59: [11, 9], 9: [59, 29], 29: [9, 12], 12: [29, 1], 
+            #     1: [12, 31], 18: [78, 72, 57, 0], 92: [65], 65: [92, 49, 38], 49: [65], 38: [65, 58, 30, 45], 
+            #     91: [58], 58: [91, 75, 32, 8, 38], 90: [68], 68: [90, 24, 52], 10: [24], 24: [10, 68], 
+            #     52: [68, 96], 96: [52, 48, 67], 42: [47], 47: [42, 27], 27: [47, 48], 48: [27, 96], 
+            #     67: [96, 93, 75], 28: [93], 93: [28, 67], 75: [67, 43, 23, 58], 43: [75], 69: [23], 
+            #     23: [69, 75], 32: [58], 8: [58], 36: [33], 33: [36, 98], 98: [33, 99], 99: [98, 53, 30], 
+            #     53: [99], 30: [99, 38], 45: [38, 72], 72: [45, 7, 18], 73: [16], 16: [73, 3, 79], 82: [50], 
+            #     50: [82, 2, 61], 66: [2], 2: [66, 5, 50], 74: [5], 5: [74, 46, 2], 84: [85], 85: [84, 94], 
+            #     94: [85, 60, 6, 77], 95: [60], 60: [95, 94], 89: [6], 6: [89, 94], 77: [94, 46], 46: [77, 5], 
+            #     61: [50, 97], 97: [61, 63], 63: [97, 39, 25, 3], 39: [63], 80: [25], 25: [80, 35, 63], 35: [25], 
+            #     3: [63, 14, 16], 86: [14], 14: [86, 81, 3], 70: [81], 81: [70, 34, 4, 14], 19: [22], 22: [19, 34], 
+            #     34: [22, 20, 17, 81], 54: [20], 20: [54, 34], 17: [34], 37: [40], 40: [37, 4], 4: [40, 13, 81], 
+            #     41: [13], 13: [41, 4], 79: [16, 7], 7: [79, 44, 72], 44: [7], 56: [21], 21: [56, 57], 57: [21, 18]}
     return tree
 
 """
@@ -112,7 +112,7 @@ Get input/data for each task from file.
 Param: path of file
 Output: class Task, this Task will have some fields: 
 n (number of sensor), 
-m (number of relay node), 
+m (number of relay node),
 numberOfEdges, 
 s (list of report size),
 listOfRelayNode (numpy array of relay node),
@@ -560,8 +560,8 @@ def mfea(tasks, rmp=0.3, generation=100):
             idxP1 = tournamentSelectionIndividual(population.shape[0],5,scalarFitness)
             idxP2 = tournamentSelectionIndividual(population.shape[0],5,scalarFitness)
             rand = np.random.random()
-            # if(skillFactor[idxP1] == skillFactor[idxP2] or rand < rmp):
-            if False:
+            if(skillFactor[idxP1] == skillFactor[idxP2] or rand < rmp):
+            # if False:
                 # o1 = ECO_withPhenotype([population[idxP1], population[idxP2]])
                 # o2 = ECO_withPhenotype([population[idxP2], population[idxP1]])
                 # o1 = eco2((population[idxP1][0].tolist(), population[idxP1][1].tolist()),(population[idxP2][0].tolist(), population[idxP2][1].tolist()))
@@ -639,6 +639,10 @@ mecatDataFiles = sorted(mecatDataFiles,reverse=False)
 
 allResultCost = np.array([[0]*2])
 
+FileName = "Record/NDE2-" + str(datetime.now())
+
+f = open(FileName,"a")
+
 for i in range(len(mecatDataFiles)):
     task1 = getInputFromFile(mecatDataPath+'/'+mecatDataFiles[i])
     task2 = getInputFromFile(mecatDataPath+'_rn/rn_'+mecatDataFiles[i])
@@ -648,17 +652,22 @@ for i in range(len(mecatDataFiles)):
 
     print("-----")
     resultPopulationCost = list()
-    for i in range(len(resultPopulation)):
-        print("Task", i+1)
-        print(tasks[i].evaluateIndividualFactorialCost(resultPopulation[i]))
+    for j in range(len(resultPopulation)):
+        print("Task", j+1)
+        print(tasks[j].evaluateIndividualFactorialCost(resultPopulation[j]))
         print()
-        resultPopulationCost.append(tasks[i].evaluateIndividualFactorialCost(resultPopulation[i]))
+        resultPopulationCost.append(tasks[j].evaluateIndividualFactorialCost(resultPopulation[j]))
     allResultCost = np.vstack([allResultCost, np.array(resultPopulationCost)])
     print("-----")
     print()
+    resultSentence = "File: "+str(mecatDataFiles[i])+" ["+str(allResultCost[i+1][0])+" "+str(allResultCost[i+1][1])+"]"+"\n"
+    f.write(resultSentence)
+
 
 allResultCost = np.delete(allResultCost, 0, axis = 0)
 
 for i in range(len(mecatDataFiles)):
     print("File: ", mecatDataFiles[i],end=' ')
     print(allResultCost[i])
+
+f.close()
