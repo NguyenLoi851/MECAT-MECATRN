@@ -13,12 +13,13 @@ import numpy as np
 import random
 import math
 import os
-
-N = 200
+import matplotlib.pyplot as plt
+N = 500
 Tx = 2
 Rx = 1
 q = 4
 
+random.seed(100)
 """
 Decode individual from genotype to pheotype for each task
 Param: individual (2darray)
@@ -81,31 +82,72 @@ class Task:
         self.s = s
         self.listOfRelayNode = listOfRelayNode
         self.adjList = adjList
+        self.huyanh = s.copy()
 
     """
     Evaluate factorial cost of each individual
     Param: task (self), individual (in genotype)
     Output: a number (used energy)
     """
-    def evaluateIndividualFactorialCost(self, individual):
-        result = 0
-        pheotype = decode(individual) # adjacent list
-                                            # (dictionary of (int, list))
-        z = np.array([0]*(self.n+self.m+1))
-        while(len(pheotype) != 1):
-            for key in list(pheotype):
-                if(key != 0 and len(pheotype[key]) == 1):
-                    z[key] += self.s[key]
-                    adjVertice = pheotype[key][0]
-                    z[adjVertice] += z[key]
-                    pheotype.pop(key, None)
-                    pheotype[adjVertice].remove(key)
+    # def evaluateIndividualFactorialCost(self, individual):
+    #     result = 0
+    #     pheotype = decode(individual) # adjacent list
+    #                                         # (dictionary of (int, list))
+    #     z = np.array([0]*(self.n+self.m+1))
+    #     while(len(pheotype) != 1):
+    #         for key in list(pheotype):
+    #             if(key != 0 and len(pheotype[key]) == 1):
+    #                 z[key] += self.s[key]
+    #                 adjVertice = pheotype[key][0]
+    #                 z[adjVertice] += z[key]
+    #                 pheotype.pop(key, None)
+    #                 pheotype[adjVertice].remove(key)
 
-        for i in range(self.n + self.m + 1):
-            if(i == 0):
-                continue
-            result += math.ceil(z[i]/q)
-        return (Tx + Rx)*result
+    #     for i in range(self.n + self.m + 1):
+    #         if(i == 0):
+    #             continue
+    #         result += math.ceil(z[i]/q)
+    #     return (Tx + Rx)*result
+
+    def evaluateIndividualFactorialCost(self, individual):
+        individual = decode(individual)
+        return self.energy_cost(self.n+self.m+1, self.dic_to_list(individual),Tx, Rx,q, self.huyanh.copy(), self.level(self.dic_to_list(individual)))
+        # return self.energy_cost(self.n+self.m+1, individual.tolist(),Tx, Rx,q, self.s, self.level(individual.tolist()))
+
+    def level(self, tree):
+        level = {}
+        for i in range(self.n+self.m+1):
+            level[i] = len(tree[i])
+        # level = sorted(level.items(),key = lambda x:x[1])
+        return level
+
+    def dic_to_list(self, dic):
+        res = [[] for i in range(len(dic))]
+        # res = [[]]
+        for key, value in dic.items():
+            res[key] = value
+        return res
+
+    def energy_cost(self, num_node,tree,h,r,q,report_size,level):
+        z = report_size.copy()
+    
+        res = 0
+        checked = [False for i in range(num_node)]
+        
+        level.pop(0)
+
+        while len(level.keys()) != 0:
+            key = min(level, key=level.get)
+            level.pop(key)
+            checked[key] = True
+            for neighbor in tree[key]:
+                if neighbor in level:
+                    level[neighbor] -= 1
+                if checked[neighbor] == True:
+                    z[key] +=z[neighbor]
+            res += math.ceil(z[key]/q)
+        return res*(h+r)
+
 
 """
 Get input/data for each task from file.
@@ -528,8 +570,10 @@ Multi-factorial Evolutionary Algorithm
 Param: tasks (array of class Task), rmp, number of generation
 Output: best individual for each task
 """
-def mfea(tasks, rmp=0.3, generation=100):
+def mfea(databaseName, tasks, rmp=0.3, generation=100):
     # Initial population with N individuals for each task
+    mecat = []
+    metcat_rn = []
     lengthOfGen = len(tasks[0].adjList)
     K = len(tasks)
     size = N*K  # size of population
@@ -561,6 +605,7 @@ def mfea(tasks, rmp=0.3, generation=100):
             idxP2 = tournamentSelectionIndividual(population.shape[0],5,scalarFitness)
             rand = np.random.random()
             if(skillFactor[idxP1] == skillFactor[idxP2] or rand < rmp):
+            # if(True):
             # if False:
                 # o1 = ECO_withPhenotype([population[idxP1], population[idxP2]])
                 # o2 = ECO_withPhenotype([population[idxP2], population[idxP1]])
@@ -568,17 +613,33 @@ def mfea(tasks, rmp=0.3, generation=100):
                 # o2 = eco2((population[idxP2][0].tolist(), population[idxP2][1].tolist()),(population[idxP1][0].tolist(), population[idxP1][1].tolist()))
                 o1 = eco3(population[idxP1], population[idxP2])
                 o2 = eco3(population[idxP2], population[idxP1])
-                offspringSkillFactor = np.append(offspringSkillFactor,[np.random.choice([skillFactor[idxP1], skillFactor[idxP2]]) for i in range(2)])
-            else:
+
                 edge0 = randrange(len(tasks[0].adjList))
                 idxEdge1 = randrange(len(tasks[0].adjList[edge0]))
                 edge1 = tasks[0].adjList[edge0][idxEdge1]
+
+                edge0x = randrange(len(tasks[0].adjList))
+                idxEdge1x = randrange(len(tasks[0].adjList[edge0x]))
+                edge1x = tasks[0].adjList[edge0x][idxEdge1x]
+                # offspringSkillFactor = np.append(offspringSkillFactor,[np.random.choice([skillFactor[idxP1], skillFactor[idxP2]]) for i in range(2)])
+                o1 = epo(o1, edge0, edge1)
+                o2 = epo(o2, edge0x, edge1x)
+                offspringSkillFactor = np.append(offspringSkillFactor,[skillFactor[idxP1], skillFactor[idxP2]])
+            else:
+            # if(True):
+                edge0 = randrange(len(tasks[0].adjList))
+                idxEdge1 = randrange(len(tasks[0].adjList[edge0]))
+                edge1 = tasks[0].adjList[edge0][idxEdge1]
+
+                edge0x = randrange(len(tasks[0].adjList))
+                idxEdge1x = randrange(len(tasks[0].adjList[edge0x]))
+                edge1x = tasks[0].adjList[edge0x][idxEdge1x]
                 # o1 = EPO_withPhenotype(population[idxP1], list([edge0, edge1]))
                 # o2 = EPO_withPhenotype(population[idxP2], list([edge0, edge1]))
                 # o1 = epo((population[idxP1][0].tolist(), population[idxP1][1].tolist()), edge0, edge1)
                 # o2 = epo((population[idxP2][0].tolist(), population[idxP2][1].tolist()), edge0, edge1)
                 o1 = epo(population[idxP1], edge0, edge1)
-                o2 = epo(population[idxP2], edge0, edge1)
+                o2 = epo(population[idxP2], edge0x, edge1x)
                 offspringSkillFactor = np.append(offspringSkillFactor,[skillFactor[idxP1], skillFactor[idxP2]])
             offspringPopulation = np.vstack([offspringPopulation, [o1]])
             offspringPopulation = np.vstack([offspringPopulation, [o2]])
@@ -623,10 +684,19 @@ def mfea(tasks, rmp=0.3, generation=100):
         
         # history = np.vstack([history, nextHistory])
         print('Epoch [{}/{}], Best Cost: {}'.format(i + 1, generation, nextHistory))
+        mecat.append(nextHistory[0])
+        metcat_rn.append(nextHistory[1])
+        # print(datetime.now())
 
     # Result
     sol_idx = [np.argmin(individualBestCost[np.where(skillFactor == idx)]) for idx in range (len(tasks))]
     # return [population[np.where(skillFactor == idx)[0]][sol_idx[idx]] for idx in range(len(tasks))], history
+    plt.plot(mecat)
+    plt.plot(metcat_rn,color='red')
+    # plt.show()
+    plotFileName = 'Plot/' + str(databaseName) + '.png'
+    plt.savefig(plotFileName)
+    plt.clf()
     return [population[np.where(skillFactor == idx)[0]][sol_idx[idx]] for idx in range(len(tasks))]
 
 
@@ -637,18 +707,22 @@ mecatDataFiles = os.listdir(mecatDataPath)
 
 mecatDataFiles = sorted(mecatDataFiles,reverse=False)
 
+mecatDataFiles = mecatDataFiles[17:]
+
 allResultCost = np.array([[0]*2])
 
 FileName = "Record/NDE2-" + str(datetime.now())
 
 f = open(FileName,"a")
 
+cntDatabase = 0
+
 for i in range(len(mecatDataFiles)):
     task1 = getInputFromFile(mecatDataPath+'/'+mecatDataFiles[i])
     task2 = getInputFromFile(mecatDataPath+'_rn/rn_'+mecatDataFiles[i])
     tasks = list([task1, task2])
     print('Task 1 and 2 is from file: ', mecatDataFiles[i])
-    resultPopulation = mfea(tasks, 0.3, 1000)
+    resultPopulation = mfea(mecatDataFiles[i], tasks, 0.25, 150)
 
     print("-----")
     resultPopulationCost = list()
