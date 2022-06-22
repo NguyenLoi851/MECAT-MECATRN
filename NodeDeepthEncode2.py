@@ -18,6 +18,8 @@ N = 500
 Tx = 2
 Rx = 1
 q = 4
+NE = 75
+deltaT = 150
 
 random.seed(100)
 """
@@ -236,7 +238,11 @@ Param: factorial rank of population
 Output: 1-D array
 """
 def evaluateSkillFactor(factorialRank):
-    return np.argmin(factorialRank, axis=1)
+    # print(len(factorialRank))
+    res = [i % 2 for i in range(1000)]
+    return np.array(res)
+    # exit(1)
+    # return np.argmin(factorialRank, axis=1)
 
 """
 Tournament selection to select the fittest individuals
@@ -245,7 +251,7 @@ Output: index of fittest individual
 """
 def tournamentSelectionIndividual(sizeOfPopulation, k, scalarFitness):
     selected = np.array(random.sample(range(sizeOfPopulation),k))
-    idxOfResult = np.argmax(scalarFitness[selected])   
+    idxOfResult = np.argmax(scalarFitness[selected])  
     return int(selected[idxOfResult])
 
 """
@@ -373,21 +379,21 @@ def encode(tree, root):
     dfs(tree, root, deepth)
     return np.array(individual)
 
-def eco2(gen1, gen2):
-    num_node = len(gen1[0])
-    i = random.randint(num_node//4, 3*num_node//4)
-    vr = random.sample(range(num_node), i)
-    # vr = [5, 6, 8, 3]
-    childGen = (gen2[0].copy(), gen2[1].copy())
-    for k in vr:
-        idxK = gen1[0].index(k)
-        if gen1[1][idxK] > 0:
-            for index in range(idxK-1, -1, -1):
-                if gen1[1][index] < gen1[1][idxK]:
-                    childGenResult = np.copy(epo(childGen, gen1[0][idxK], gen1[0][index]))
-                    childGen = (childGenResult[0].tolist().copy(), childGenResult[1].tolist().copy())
-                    break
-    return np.array(childGen)
+# def eco2(gen1, gen2):
+#     num_node = len(gen1[0])
+#     i = random.randint(num_node//4, 3*num_node//4)
+#     vr = random.sample(range(num_node), i)
+#     # vr = [5, 6, 8, 3]
+#     childGen = (gen2[0].copy(), gen2[1].copy())
+#     for k in vr:
+#         idxK = gen1[0].index(k)
+#         if gen1[1][idxK] > 0:
+#             for index in range(idxK-1, -1, -1):
+#                 if gen1[1][index] < gen1[1][idxK]:
+#                     childGenResult = np.copy(epo(childGen, gen1[0][idxK], gen1[0][index]))
+#                     childGen = (childGenResult[0].tolist().copy(), childGenResult[1].tolist().copy())
+#                     break
+#     return np.array(childGen)
 
 def eco3(individual1, individual2):
     A = individual1
@@ -564,7 +570,58 @@ def genTree(graph):
     root = randrange(len(graph))
 
     return root, res
+
+"""
+Create potential population
+Param: tree, adjList, numberOfEdges, maximumNumberOfEdges, numberOfTasks
+Output: K*NE potential individuals
+"""
+# def createPotentialPopulation(tree, adjList, numberOfEdges, maximumNumberOfEdges,numberOfTasks):
+#     population = np.empty((0, maximumNumberOfEdges), float)
+#     numberOfEdgesOfTree = 0
+#     for key in tree:
+#         tree[key] = sorted(tree[key])
+#         numberOfEdgesOfTree += len(tree[key])
+#     numberOfEdgesOfTree //= 2
+#     for key in adjList:
+#         adjList[key] = sorted(adjList[key])
+#     for _ in range(numberOfTasks*NE):
+#         individual = encode(tree, adjList, numberOfEdges, numberOfEdgesOfTree)
+#         population = np.vstack([population, representInCommonSpace(individual, maximumNumberOfEdges)])
+#     return population
+
     
+# def SPT(numberOfNodes, graph):
+#     tmpGraph = {}
+#     for key in graph:
+#         vertices = graph[key]
+#         tmpGraph[key] = sorted(vertices)
+#     isVisited = [False for i in range(numberOfNodes)]
+#     queue = []
+#     queue.append(0)
+#     isVisited[0] = True
+#     count = 1
+#     tree = [[]for i in range(numberOfNodes)]
+#     while(len(queue) != 0):
+#         h = queue[0]
+#         queue.pop(0)
+#         for i in tmpGraph[h]:
+#             if isVisited[i] == False:
+#                 isVisited[i] = True
+#                 queue.append(i)
+#                 count += 1
+#                 tree[h].append(i)
+#                 tree[i].append(h)
+#                 if(count == numberOfNodes):
+#                     result = {}
+#                     for i in range(len(tree)):
+#                         result[i] = tree[i]
+#                     return result
+#     result = {}
+#     for i in range(len(tree)):
+#         result[i] = tree[i]
+#     return result
+
 """
 Multi-factorial Evolutionary Algorithm
 Param: tasks (array of class Task), rmp, number of generation
@@ -582,7 +639,9 @@ def mfea(databaseName, tasks, rmp=0.3, generation=100):
     for task in tasks:
         for i in range(N):
             tree = genTree(task.adjList)[1]
+            # randTmp = random.randint(0, lengthOfGen-1)
             population = np.vstack([population, [encode(tree,0)]])
+            # population = np.vstack([population, [encode(tree,randTmp)]])
     population = np.delete(population, 0, axis=0)
     t = 0
 
@@ -592,6 +651,8 @@ def mfea(databaseName, tasks, rmp=0.3, generation=100):
     skillFactor = evaluateSkillFactor(factorialRank)
     scalarFitness = evaluateScalarFitness(factorialRank)
     individualBestCost = np.array([populationFactorialCost[idx][skillFactor[idx]] for idx in range(size)])
+
+    # shortestPathTree = SPT(tasks[0].n+tasks[0].m+1, tasks[0].adjList)
 
     # Loops
     for i in range(generation):
@@ -646,6 +707,12 @@ def mfea(databaseName, tasks, rmp=0.3, generation=100):
 
         offspringPopulation = np.delete(offspringPopulation, 0, axis = 0)
 
+        # # if(t>deltaT and t%deltaT == 0):
+        # if True:
+        #     potentialPopulation = createPotentialPopulation(shortestPathTree, tasks[0].adjList, tasks[0].numberOfEdges, maximumNumberOfEdges, len(tasks))
+        #     potentialSkillFactor = np.array([0]*(K*NE))
+        #     potentialCost = evaluatePopulationFactorialCost(potentialPopulation, list([tasks[0]]))
+
         # Factorial cost of offspring population
         offspringCost = evaluateOffspringCost(offspringPopulation, offspringSkillFactor, tasks)
 
@@ -661,12 +728,19 @@ def mfea(databaseName, tasks, rmp=0.3, generation=100):
 
         # choose fittest individual by tournament selection
         idxFittestPopulation = list()
-        for _ in range(size):
-            idxFittestIndividual = tournamentSelectionIndividual(population.shape[0], 4, scalarFitness)
-            idxFittestPopulation.append(idxFittestIndividual)
-
-        # idxFittestPopulation = np.argsort(-scalarFitness)[:size]
-
+        # for _ in range(size):
+        #     idxFittestIndividual = tournamentSelectionIndividual(population.shape[0], 4, scalarFitness)
+        #     idxFittestPopulation.append(idxFittestIndividual)
+        tmpSize = size*4//5
+        tmpSize = 2
+        tmpSize = size // 2
+        idxFittestPopulation = np.argsort(-scalarFitness)[:tmpSize]
+        # for _ in range(size//5):
+        for _ in range(size//2):
+            idxFittestIndividual = random.randint(size, size*2-1)
+            # idxFittestPopulation.append(idxFittestIndividual)
+            idxFittestPopulation = np.append(idxFittestPopulation, idxFittestIndividual)
+        
         population = population[idxFittestPopulation]
         skillFactor = skillFactor[idxFittestPopulation]
         individualBestCost = individualBestCost[idxFittestPopulation]
@@ -707,7 +781,7 @@ mecatDataFiles = os.listdir(mecatDataPath)
 
 mecatDataFiles = sorted(mecatDataFiles,reverse=False)
 
-mecatDataFiles = mecatDataFiles[17:]
+mecatDataFiles = mecatDataFiles[10:]
 
 allResultCost = np.array([[0]*2])
 
@@ -722,7 +796,7 @@ for i in range(len(mecatDataFiles)):
     task2 = getInputFromFile(mecatDataPath+'_rn/rn_'+mecatDataFiles[i])
     tasks = list([task1, task2])
     print('Task 1 and 2 is from file: ', mecatDataFiles[i])
-    resultPopulation = mfea(mecatDataFiles[i], tasks, 0.25, 150)
+    resultPopulation = mfea(mecatDataFiles[i], tasks, 1, 300)
 
     print("-----")
     resultPopulationCost = list()
