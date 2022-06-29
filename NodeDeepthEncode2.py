@@ -19,7 +19,7 @@ Tx = 2
 Rx = 1
 q = 4
 NE = 75
-deltaT = 150
+deltaT = 3
 
 random.seed(100)
 """
@@ -576,51 +576,54 @@ Create potential population
 Param: tree, adjList, numberOfEdges, maximumNumberOfEdges, numberOfTasks
 Output: K*NE potential individuals
 """
-# def createPotentialPopulation(tree, adjList, numberOfEdges, maximumNumberOfEdges,numberOfTasks):
-#     population = np.empty((0, maximumNumberOfEdges), float)
-#     numberOfEdgesOfTree = 0
-#     for key in tree:
-#         tree[key] = sorted(tree[key])
-#         numberOfEdgesOfTree += len(tree[key])
-#     numberOfEdgesOfTree //= 2
-#     for key in adjList:
-#         adjList[key] = sorted(adjList[key])
-#     for _ in range(numberOfTasks*NE):
-#         individual = encode(tree, adjList, numberOfEdges, numberOfEdgesOfTree)
-#         population = np.vstack([population, representInCommonSpace(individual, maximumNumberOfEdges)])
-#     return population
+def createPotentialPopulation(tree, adjList, numberOfEdges, lengthOfGen, numberOfTasks):
+    # population = np.empty((0, maximumNumberOfEdges), float)
+    population = np.array([[[0]*lengthOfGen,[0]*lengthOfGen]])
+    numberOfEdgesOfTree = 0
+    for key in tree:
+        tree[key] = sorted(tree[key])
+        numberOfEdgesOfTree += len(tree[key])
+    numberOfEdgesOfTree //= 2
+    for key in adjList:
+        adjList[key] = sorted(adjList[key])
+    for _ in range(numberOfTasks*NE):
+        # individual = encode(tree, adjList, numberOfEdges, numberOfEdgesOfTree)
+        population = np.vstack([population, [encode(tree,0)]])
+        # population = np.vstack([population, representInCommonSpace(individual, maximumNumberOfEdges)])
+    population = np.delete(population, 0, axis=0)
+    return population
 
     
-# def SPT(numberOfNodes, graph):
-#     tmpGraph = {}
-#     for key in graph:
-#         vertices = graph[key]
-#         tmpGraph[key] = sorted(vertices)
-#     isVisited = [False for i in range(numberOfNodes)]
-#     queue = []
-#     queue.append(0)
-#     isVisited[0] = True
-#     count = 1
-#     tree = [[]for i in range(numberOfNodes)]
-#     while(len(queue) != 0):
-#         h = queue[0]
-#         queue.pop(0)
-#         for i in tmpGraph[h]:
-#             if isVisited[i] == False:
-#                 isVisited[i] = True
-#                 queue.append(i)
-#                 count += 1
-#                 tree[h].append(i)
-#                 tree[i].append(h)
-#                 if(count == numberOfNodes):
-#                     result = {}
-#                     for i in range(len(tree)):
-#                         result[i] = tree[i]
-#                     return result
-#     result = {}
-#     for i in range(len(tree)):
-#         result[i] = tree[i]
-#     return result
+def SPT(numberOfNodes, graph):
+    tmpGraph = {}
+    for key in graph:
+        vertices = graph[key]
+        tmpGraph[key] = sorted(vertices)
+    isVisited = [False for i in range(numberOfNodes)]
+    queue = []
+    queue.append(0)
+    isVisited[0] = True
+    count = 1
+    tree = [[]for i in range(numberOfNodes)]
+    while(len(queue) != 0):
+        h = queue[0]
+        queue.pop(0)
+        for i in tmpGraph[h]:
+            if isVisited[i] == False:
+                isVisited[i] = True
+                queue.append(i)
+                count += 1
+                tree[h].append(i)
+                tree[i].append(h)
+                if(count == numberOfNodes):
+                    result = {}
+                    for i in range(len(tree)):
+                        result[i] = tree[i]
+                    return result
+    result = {}
+    for i in range(len(tree)):
+        result[i] = tree[i]
+    return result
 
 """
 Multi-factorial Evolutionary Algorithm
@@ -652,7 +655,7 @@ def mfea(databaseName, tasks, rmp=0.3, generation=100):
     scalarFitness = evaluateScalarFitness(factorialRank)
     individualBestCost = np.array([populationFactorialCost[idx][skillFactor[idx]] for idx in range(size)])
 
-    # shortestPathTree = SPT(tasks[0].n+tasks[0].m+1, tasks[0].adjList)
+    shortestPathTree = SPT(tasks[0].n+tasks[0].m+1, tasks[0].adjList)
 
     # Loops
     for i in range(generation):
@@ -708,21 +711,34 @@ def mfea(databaseName, tasks, rmp=0.3, generation=100):
         offspringPopulation = np.delete(offspringPopulation, 0, axis = 0)
 
         # # if(t>deltaT and t%deltaT == 0):
-        # if True:
-        #     potentialPopulation = createPotentialPopulation(shortestPathTree, tasks[0].adjList, tasks[0].numberOfEdges, maximumNumberOfEdges, len(tasks))
-        #     potentialSkillFactor = np.array([0]*(K*NE))
-        #     potentialCost = evaluatePopulationFactorialCost(potentialPopulation, list([tasks[0]]))
+        if True:
+            potentialPopulation = createPotentialPopulation(shortestPathTree, tasks[0].adjList, tasks[0].numberOfEdges, lengthOfGen, len(tasks))
+            potentialSkillFactor = np.array([0]*(K*NE))
+            potentialCost = evaluatePopulationFactorialCost(potentialPopulation, list([tasks[0]]))
+
+            # MECATRN_potentialPopulation = createPotentialPopulation(MECATRN_shortestPathTree, tasks[1].adjList, tasks[1].numberOfEdges, maximumNumberOfEdges, len(tasks))
+            # MECATRN_potentialSkillFactor = np.array([1]*(K*NE))
+            # MECATRN_potentialCost = evaluatePopulationFactorialCost(MECATRN_potentialPopulation, list([tasks[1]]))
 
         # Factorial cost of offspring population
         offspringCost = evaluateOffspringCost(offspringPopulation, offspringSkillFactor, tasks)
 
         # Update population
         population = np.vstack([population, offspringPopulation])
-
+        if(t>deltaT and t%deltaT == 0):
+            population = np.vstack([population, potentialPopulation])
+            # population = np.vstack([population, MECATRN_potentialPopulation])
+        
         # Update scalar fitness and skill factor for each individual
         skillFactor = np.append(skillFactor, offspringSkillFactor)
-
+        if(t>deltaT and t%deltaT == 0):
+            skillFactor = np.append(skillFactor, potentialSkillFactor)
+            # skillFactor = np.append(skillFactor, MECATRN_potentialSkillFactor)
+        
         individualBestCost = np.append(individualBestCost, offspringCost)
+        if(t>deltaT and t%deltaT == 0):
+            individualBestCost = np.append(individualBestCost, potentialCost)
+            # individualBestCost = np.append(individualBestCost, MECATRN_potentialCost)
 
         scalarFitness = 1 / (evaluateRankBaseOnSkillFactor(individualBestCost, skillFactor, len(tasks))+1)
 
@@ -781,7 +797,7 @@ mecatDataFiles = os.listdir(mecatDataPath)
 
 mecatDataFiles = sorted(mecatDataFiles,reverse=False)
 
-mecatDataFiles = mecatDataFiles[10:]
+# mecatDataFiles = mecatDataFiles[10:]
 
 allResultCost = np.array([[0]*2])
 
