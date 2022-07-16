@@ -48,7 +48,7 @@ N = 200
 NE = 75
 uc = 2
 um = 5
-deltaT = 150
+deltaT = 15
 INF = 9999999999
 
 """
@@ -857,14 +857,14 @@ mecatDataPath = os.getcwd()+'/dataset4mecat/mecat'
 
 mecatDataFiles = os.listdir(mecatDataPath)
 
-mecatDataFiles = sorted(mecatDataFiles,reverse=True)
+mecatDataFiles = sorted(mecatDataFiles,reverse=False)
 
 for i in range(len(mecatDataFiles)):
     task1 = getInputFromFile(mecatDataPath+'/'+mecatDataFiles[i])
     task2 = getInputFromFile(mecatDataPath+'_rn/rn_'+mecatDataFiles[i])
     tasks = list([task1, task2])
     print('Task 1 and 2 is from file: ', mecatDataFiles[i])
-    resultPopulation,history = mfea(tasks, 0.3, 1000)
+    resultPopulation,history = mfea(tasks, 0.3, 500)
     print("-----")
     for i in range(len(resultPopulation)):
         print("Task", i+1)
