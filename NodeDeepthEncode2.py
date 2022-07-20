@@ -19,7 +19,7 @@ Tx = 2
 Rx = 1
 q = 4
 NE = 25
-deltaT = 10
+deltaT = 10000
 INF = 9999999999
 
 random.seed(100)
@@ -1093,7 +1093,7 @@ for i in range(len(mecatDataFiles)):
     task2 = getInputFromFile(mecatDataPath+'_rn/rn_'+mecatDataFiles[i])
     tasks = list([task1, task2])
     print('Task 1 and 2 is from file: ', mecatDataFiles[i])
-    resultPopulation = mfea(mecatDataFiles[i], tasks, 0.5, 150)
+    resultPopulation = mfea(mecatDataFiles[i], tasks, 0.3, 150)
 
     print("-----")
     resultPopulationCost = list()

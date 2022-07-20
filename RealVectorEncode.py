@@ -28,7 +28,7 @@ Original file is located at
 - Convert task to output
 """
 
-
+from datetime import datetime
 import numpy as np
 import matplotlib.pyplot as plt
 import random
@@ -718,8 +718,10 @@ Multi-factorial Evolutionary Algorithm
 Param: tasks (array of class Task), rmp, number of generation
 Output: best individual for each task
 """
-def mfea(tasks, rmp=0.3, generation=100):
+def mfea(databaseName, tasks, rmp=0.3, generation=100):
     # Initial population with N individuals for each task
+    mecat = []
+    metcat_rn = []
     history = np.empty((0, len(tasks)), float)
     K = len(tasks)
     size = N*K  # size of population
@@ -844,37 +846,99 @@ def mfea(tasks, rmp=0.3, generation=100):
                 bestCostForTask = np.min(populationFactorialCost)
             nextHistory = np.append(nextHistory, bestCostForTask)
         
+        
         history = np.vstack([history, nextHistory])
         print('Epoch [{}/{}], Best Cost: {}'.format(i + 1, generation, nextHistory))
+        mecat.append(nextHistory[0])
+        metcat_rn.append(nextHistory[1])
 
     # Result
     sol_idx = [np.argmin(individualBestCost[np.where(skillFactor == idx)]) for idx in range (len(tasks))]
+    plt.plot(mecat)
+    plt.plot(metcat_rn,color='red')
+    # plt.show()
+    plotFileName = 'Plot/' + str(databaseName) + '.png'
+    plt.savefig(plotFileName)
+    plt.clf()
     return [population[np.where(skillFactor == idx)[0]][sol_idx[idx]] for idx in range(len(tasks))], history
 
 
 # main
+# mecatDataPath = os.getcwd()+'/dataset4mecat/mecat'
+
+# mecatDataFiles = os.listdir(mecatDataPath)
+
+# mecatDataFiles = sorted(mecatDataFiles,reverse=False)
+
+# allResultCost = np.array([[0]*2])
+
+# FileName = "Record/NDE2-" + str(datetime.now())
+
+# f = open(FileName,"a")
+
+# cntDatabase = 0
+
+# for i in range(len(mecatDataFiles)):
+#     task1 = getInputFromFile(mecatDataPath+'/'+mecatDataFiles[i])
+#     task2 = getInputFromFile(mecatDataPath+'_rn/rn_'+mecatDataFiles[i])
+#     tasks = list([task1, task2])
+#     print('Task 1 and 2 is from file: ', mecatDataFiles[i])
+#     resultPopulation,history = mfea(tasks, 0.3, 500)
+#     print("-----")
+#     for i in range(len(resultPopulation)):
+#         print("Task", i+1)
+#         print(tasks[i].evaluateIndividualFactorialCost(resultPopulation[i]))
+#         print()
+#     print("-----")
+#     print()
+#     for i in range (history.shape[1]):
+#         plt.plot(np.arange(len(history)), history[:, i], "blue")
+#         plt.title(tasks[i].__class__.__name__)
+#         plt.xlabel("Epoch")
+#         plt.ylabel("Best Factorial Cost")
+#         plt.show()
+
 mecatDataPath = os.getcwd()+'/dataset4mecat/mecat'
 
 mecatDataFiles = os.listdir(mecatDataPath)
 
 mecatDataFiles = sorted(mecatDataFiles,reverse=False)
 
+# mecatDataFiles = mecatDataFiles[10:]
+
+allResultCost = np.array([[0]*2])
+
+FileName = "Record/NDE2-" + str(datetime.now())
+
+f = open(FileName,"a")
+
+cntDatabase = 0
+
 for i in range(len(mecatDataFiles)):
     task1 = getInputFromFile(mecatDataPath+'/'+mecatDataFiles[i])
     task2 = getInputFromFile(mecatDataPath+'_rn/rn_'+mecatDataFiles[i])
     tasks = list([task1, task2])
     print('Task 1 and 2 is from file: ', mecatDataFiles[i])
-    resultPopulation,history = mfea(tasks, 0.3, 500)
+    resultPopulation = mfea(mecatDataFiles[i], tasks, 0.3, 150)
+
     print("-----")
-    for i in range(len(resultPopulation)):
-        print("Task", i+1)
-        print(tasks[i].evaluateIndividualFactorialCost(resultPopulation[i]))
+    resultPopulationCost = list()
+    for j in range(len(resultPopulation)):
+        print("Task", j+1)
+        print(tasks[j].evaluateIndividualFactorialCost(resultPopulation[j]))
         print()
+        resultPopulationCost.append(tasks[j].evaluateIndividualFactorialCost(resultPopulation[j]))
+    allResultCost = np.vstack([allResultCost, np.array(resultPopulationCost)])
     print("-----")
     print()
-    for i in range (history.shape[1]):
-        plt.plot(np.arange(len(history)), history[:, i], "blue")
-        plt.title(tasks[i].__class__.__name__)
-        plt.xlabel("Epoch")
-        plt.ylabel("Best Factorial Cost")
-        plt.show()
+    resultSentence = "File: "+str(mecatDataFiles[i])+" ["+str(allResultCost[i+1][0])+" "+str(allResultCost[i+1][1])+"]"+"\n"
+    f.write(resultSentence)
+
+
+allResultCost = np.delete(allResultCost, 0, axis = 0)
+
+for i in range(len(mecatDataFiles)):
+    print("File: ", mecatDataFiles[i],end=' ')
+    print(allResultCost[i])
+
+f.close()
