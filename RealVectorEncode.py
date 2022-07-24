@@ -48,8 +48,9 @@ N = 200
 NE = 75
 uc = 2
 um = 5
-deltaT = 15
+deltaT = 1500000
 INF = 9999999999
+MaxNumberOfFuncEvaluate = 100000 * 2
 
 """
 Data structure checks if cycle exists in graph when add edges.
@@ -76,6 +77,7 @@ Output: adjacent List (dictionary of (int, list))
 """
 def decode(task, individual):
     result = {}
+    # tmpIndividual = (-1)*individual
     argSort = np.argsort(-individual)
     edgesOfTask = list()
     degreeOfVertice = list()
@@ -141,6 +143,8 @@ class Task:
     Output: a number (used energy)
     """
     def evaluateIndividualFactorialCost(self, individual):
+        global cntNumberOfFuncEvaluate
+        cntNumberOfFuncEvaluate += 1
         result = 0
         pheotype = decode(self, individual) # adjacent list
                                             # (dictionary of (int, list))
@@ -719,6 +723,7 @@ Param: tasks (array of class Task), rmp, number of generation
 Output: best individual for each task
 """
 def mfea(databaseName, tasks, rmp=0.3, generation=100):
+    global cntNumberOfFuncEvaluate
     # Initial population with N individuals for each task
     mecat = []
     metcat_rn = []
@@ -771,6 +776,8 @@ def mfea(databaseName, tasks, rmp=0.3, generation=100):
     MECATRN_shortestPathTree = SPT(rn_num_node, mecat_rn_graph)
     # Loops
     for i in range(generation):
+        if(cntNumberOfFuncEvaluate >= MaxNumberOfFuncEvaluate):
+            break
         offspringPopulation = np.empty((0, maximumNumberOfEdges), float)
         offspringSkillFactor = np.empty((0, 1), float)
         # potentialPopulation = np.empty((0, maximumNumberOfEdges), float)
@@ -908,24 +915,27 @@ mecatDataFiles = sorted(mecatDataFiles,reverse=False)
 
 allResultCost = np.array([[0]*2])
 
-FileName = "Record/NDE2-" + str(datetime.now())
+FileName = "Record/RVE-" + str(datetime.now())
 
 f = open(FileName,"a")
 
 cntDatabase = 0
 
 for i in range(len(mecatDataFiles)):
+    cntNumberOfFuncEvaluate = 0
     task1 = getInputFromFile(mecatDataPath+'/'+mecatDataFiles[i])
     task2 = getInputFromFile(mecatDataPath+'_rn/rn_'+mecatDataFiles[i])
     tasks = list([task1, task2])
     print('Task 1 and 2 is from file: ', mecatDataFiles[i])
-    resultPopulation = mfea(mecatDataFiles[i], tasks, 0.3, 150)
+    resultPopulation, history = mfea(mecatDataFiles[i], tasks, 0.3, 1000)
 
     print("-----")
     resultPopulationCost = list()
     for j in range(len(resultPopulation)):
         print("Task", j+1)
         print(tasks[j].evaluateIndividualFactorialCost(resultPopulation[j]))
+        print()
+        print(cntNumberOfFuncEvaluate)
         print()
         resultPopulationCost.append(tasks[j].evaluateIndividualFactorialCost(resultPopulation[j]))
     allResultCost = np.vstack([allResultCost, np.array(resultPopulationCost)])

@@ -21,6 +21,7 @@ q = 4
 NE = 25
 deltaT = 10000
 INF = 9999999999
+MaxNumberOfFuncEvaluate = 100000 * 2
 
 random.seed(100)
 """
@@ -113,6 +114,8 @@ class Task:
     #     return (Tx + Rx)*result
 
     def evaluateIndividualFactorialCost(self, individual):
+        global cntNumberOfFuncEvaluate
+        cntNumberOfFuncEvaluate += 1
         individual = decode(individual)
         return self.energy_cost(self.n+self.m+1, self.dic_to_list(individual),Tx, Rx,q, self.huyanh.copy(), self.level(self.dic_to_list(individual)))
         # return self.energy_cost(self.n+self.m+1, individual.tolist(),Tx, Rx,q, self.s, self.level(individual.tolist()))
@@ -881,6 +884,7 @@ Param: tasks (array of class Task), rmp, number of generation
 Output: best individual for each task
 """
 def mfea(databaseName, tasks, rmp=0.3, generation=100):
+    global cntNumberOfFuncEvaluate
     # Initial population with N individuals for each task
     mecat = []
     metcat_rn = []
@@ -934,6 +938,8 @@ def mfea(databaseName, tasks, rmp=0.3, generation=100):
     # exit(1)
     # Loops
     for i in range(generation):
+        if(cntNumberOfFuncEvaluate >= MaxNumberOfFuncEvaluate):
+            break
         # offspringPopulation = np.empty((0, maximumNumberOfEdges), float)
         offspringPopulation = np.array([[[0]*lengthOfGen,[0]*lengthOfGen]])
         offspringSkillFactor = np.empty((0, 1), float)
@@ -1089,6 +1095,7 @@ f = open(FileName,"a")
 cntDatabase = 0
 
 for i in range(len(mecatDataFiles)):
+    cntNumberOfFuncEvaluate = 0
     task1 = getInputFromFile(mecatDataPath+'/'+mecatDataFiles[i])
     task2 = getInputFromFile(mecatDataPath+'_rn/rn_'+mecatDataFiles[i])
     tasks = list([task1, task2])
@@ -1101,6 +1108,8 @@ for i in range(len(mecatDataFiles)):
         print("Task", j+1)
         print(tasks[j].evaluateIndividualFactorialCost(resultPopulation[j]))
         print()
+        # print(cntNumberOfFuncEvaluate)
+        # print()
         resultPopulationCost.append(tasks[j].evaluateIndividualFactorialCost(resultPopulation[j]))
     allResultCost = np.vstack([allResultCost, np.array(resultPopulationCost)])
     print("-----")
