@@ -48,7 +48,7 @@ N = 200
 NE = 75
 uc = 2
 um = 5
-deltaT = 1500000
+deltaT = 1500000000000
 INF = 9999999999
 MaxNumberOfFuncEvaluate = 100000 * 2
 
@@ -749,31 +749,32 @@ def mfea(databaseName, tasks, rmp=0.3, generation=100):
     skillFactor = evaluateSkillFactor(factorialRank)
     scalarFitness = evaluateScalarFitness(factorialRank)
     individualBestCost = np.array([populationFactorialCost[idx][skillFactor[idx]] for idx in range(size)])
-
+    # print(cntNumberOfFuncEvaluate)
+    if(t>=deltaT and t%deltaT == 0):
     # 2 approximation
     
-    shortestPathTree = SPT(tasks[0].n+tasks[0].m+1, tasks[0].adjList)
+        shortestPathTree = SPT(tasks[0].n+tasks[0].m+1, tasks[0].adjList)
 
-    # 7 approximation
-    rn_num_node = tasks[1].n+tasks[1].m+1
-    mecat_rn_adjList = [[] for i in range(rn_num_node)]
-    for key,value in tasks[1].adjList.items():
-        mecat_rn_adjList[key] = value.copy() 
-    
-    make_graph_hat = graph_hat(mecat_rn_adjList,tasks[1].s,rn_num_node)
-    graph_hat_found,all_pair_shortest_path  = make_graph_hat.run() 
-    
-    make_last_tree = LAST(graph_hat_found,all_pair_shortest_path,tasks[1].s,tasks[1].m,rn_num_node)
-    last_tree = make_last_tree.run()
+        # 7 approximation
+        rn_num_node = tasks[1].n+tasks[1].m+1
+        mecat_rn_adjList = [[] for i in range(rn_num_node)]
+        for key,value in tasks[1].adjList.items():
+            mecat_rn_adjList[key] = value.copy() 
+        
+        make_graph_hat = graph_hat(mecat_rn_adjList,tasks[1].s,rn_num_node)
+        graph_hat_found,all_pair_shortest_path  = make_graph_hat.run() 
+        
+        make_last_tree = LAST(graph_hat_found,all_pair_shortest_path,tasks[1].s,tasks[1].m,rn_num_node)
+        last_tree = make_last_tree.run()
 
-    make_graph_hat_hat = graph_hat_hat(mecat_rn_adjList,last_tree,tasks[1].s,rn_num_node)
-    graph_hat_hat_found = make_graph_hat_hat.run()
+        make_graph_hat_hat = graph_hat_hat(mecat_rn_adjList,last_tree,tasks[1].s,rn_num_node)
+        graph_hat_hat_found = make_graph_hat_hat.run()
 
-    mecat_rn_graph = {}
-    for index,adj_list in enumerate(graph_hat_hat_found):
-        mecat_rn_graph[index] = adj_list.copy()
+        mecat_rn_graph = {}
+        for index,adj_list in enumerate(graph_hat_hat_found):
+            mecat_rn_graph[index] = adj_list.copy()
 
-    MECATRN_shortestPathTree = SPT(rn_num_node, mecat_rn_graph)
+        MECATRN_shortestPathTree = SPT(rn_num_node, mecat_rn_graph)
     # Loops
     for i in range(generation):
         if(cntNumberOfFuncEvaluate >= MaxNumberOfFuncEvaluate):
@@ -807,21 +808,22 @@ def mfea(databaseName, tasks, rmp=0.3, generation=100):
 
         # Factorial cost of offspring population
         offspringCost = evaluateOffspringCost(offspringPopulation, offspringSkillFactor, tasks)
-
+        # print(cntNumberOfFuncEvaluate)
+        # exit(1)
         # Update population
         population = np.vstack([population, offspringPopulation])
-        if(t>deltaT and t%deltaT == 0):
+        if(t>=deltaT and t%deltaT == 0):
             population = np.vstack([population, potentialPopulation])
             population = np.vstack([population, MECATRN_potentialPopulation])
 
         # Update scalar fitness and skill factor for each individual
         skillFactor = np.append(skillFactor, offspringSkillFactor)
-        if(t>deltaT and t%deltaT == 0):
+        if(t>=deltaT and t%deltaT == 0):
             skillFactor = np.append(skillFactor, potentialSkillFactor)
             skillFactor = np.append(skillFactor, MECATRN_potentialSkillFactor)
 
         individualBestCost = np.append(individualBestCost, offspringCost)
-        if(t>deltaT and t%deltaT == 0):
+        if(t>=deltaT and t%deltaT == 0):
             individualBestCost = np.append(individualBestCost, potentialCost)
             individualBestCost = np.append(individualBestCost, MECATRN_potentialCost)
             
@@ -927,7 +929,9 @@ for i in range(len(mecatDataFiles)):
     task2 = getInputFromFile(mecatDataPath+'_rn/rn_'+mecatDataFiles[i])
     tasks = list([task1, task2])
     print('Task 1 and 2 is from file: ', mecatDataFiles[i])
+    startTime = datetime.now()
     resultPopulation, history = mfea(mecatDataFiles[i], tasks, 0.3, 1000)
+    endTime = datetime.now()
 
     print("-----")
     resultPopulationCost = list()
@@ -943,6 +947,7 @@ for i in range(len(mecatDataFiles)):
     print()
     resultSentence = "File: "+str(mecatDataFiles[i])+" ["+str(allResultCost[i+1][0])+" "+str(allResultCost[i+1][1])+"]"+"\n"
     f.write(resultSentence)
+    f.write("\n"+str((endTime.timestamp() - startTime.timestamp()))+"\n")
 
 
 allResultCost = np.delete(allResultCost, 0, axis = 0)
