@@ -48,7 +48,7 @@ N = 200
 NE = 75
 uc = 2
 um = 5
-deltaT = 150
+deltaT = 150000000000
 INF = 9999999999
 MaxNumberOfFuncEvaluate = 100000 * 2
 
@@ -750,31 +750,31 @@ def mfea(databaseName, tasks, rmp=0.3, generation=100):
     scalarFitness = evaluateScalarFitness(factorialRank)
     individualBestCost = np.array([populationFactorialCost[idx][skillFactor[idx]] for idx in range(size)])
     # print(cntNumberOfFuncEvaluate)
-    # if(t>=deltaT and t%deltaT == 0):
-    # 2 approximation
-    
-    shortestPathTree = SPT(tasks[0].n+tasks[0].m+1, tasks[0].adjList)
+    if(t>=deltaT and t%deltaT == 0):
+        # 2 approximation
+        
+        shortestPathTree = SPT(tasks[0].n+tasks[0].m+1, tasks[0].adjList)
 
-    # 7 approximation
-    rn_num_node = tasks[1].n+tasks[1].m+1
-    mecat_rn_adjList = [[] for i in range(rn_num_node)]
-    for key,value in tasks[1].adjList.items():
-        mecat_rn_adjList[key] = value.copy() 
-    
-    make_graph_hat = graph_hat(mecat_rn_adjList,tasks[1].s,rn_num_node)
-    graph_hat_found,all_pair_shortest_path  = make_graph_hat.run() 
-    
-    make_last_tree = LAST(graph_hat_found,all_pair_shortest_path,tasks[1].s,tasks[1].m,rn_num_node)
-    last_tree = make_last_tree.run()
+        # 7 approximation
+        rn_num_node = tasks[1].n+tasks[1].m+1
+        mecat_rn_adjList = [[] for i in range(rn_num_node)]
+        for key,value in tasks[1].adjList.items():
+            mecat_rn_adjList[key] = value.copy() 
+        
+        make_graph_hat = graph_hat(mecat_rn_adjList,tasks[1].s,rn_num_node)
+        graph_hat_found,all_pair_shortest_path  = make_graph_hat.run() 
+        
+        make_last_tree = LAST(graph_hat_found,all_pair_shortest_path,tasks[1].s,tasks[1].m,rn_num_node)
+        last_tree = make_last_tree.run()
 
-    make_graph_hat_hat = graph_hat_hat(mecat_rn_adjList,last_tree,tasks[1].s,rn_num_node)
-    graph_hat_hat_found = make_graph_hat_hat.run()
+        make_graph_hat_hat = graph_hat_hat(mecat_rn_adjList,last_tree,tasks[1].s,rn_num_node)
+        graph_hat_hat_found = make_graph_hat_hat.run()
 
-    mecat_rn_graph = {}
-    for index,adj_list in enumerate(graph_hat_hat_found):
-        mecat_rn_graph[index] = adj_list.copy()
+        mecat_rn_graph = {}
+        for index,adj_list in enumerate(graph_hat_hat_found):
+            mecat_rn_graph[index] = adj_list.copy()
 
-    MECATRN_shortestPathTree = SPT(rn_num_node, mecat_rn_graph)
+        MECATRN_shortestPathTree = SPT(rn_num_node, mecat_rn_graph)
     # Loops
     for i in range(generation):
         if(cntNumberOfFuncEvaluate >= MaxNumberOfFuncEvaluate):
@@ -797,7 +797,7 @@ def mfea(databaseName, tasks, rmp=0.3, generation=100):
             offspringPopulation = np.vstack([offspringPopulation, o1])
             offspringPopulation = np.vstack([offspringPopulation, o2])
 
-        if(t>deltaT and t%deltaT == 0):
+        if(t>=deltaT and t%deltaT == 0):
             potentialPopulation = createPotentialPopulation(shortestPathTree, tasks[0].adjList, tasks[0].numberOfEdges, maximumNumberOfEdges, len(tasks))
             potentialSkillFactor = np.array([0]*(K*NE))
             potentialCost = evaluatePopulationFactorialCost(potentialPopulation, list([tasks[0]]))
@@ -913,7 +913,7 @@ mecatDataFiles = os.listdir(mecatDataPath)
 
 mecatDataFiles = sorted(mecatDataFiles,reverse=False)
 
-# mecatDataFiles = mecatDataFiles[10:]
+mecatDataFiles = mecatDataFiles[11:]
 
 allResultCost = np.array([[0]*2])
 
